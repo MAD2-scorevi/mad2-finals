@@ -1,0 +1,21 @@
+# Android Studio
+.idea/
+*.iml
+build/
+gradle/
+
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+pubspec.lock
+
+# macOS
+macos/
+
+# iOS
+ios/
+
+# Windows
+windows/
