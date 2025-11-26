@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'services/firebase_auth_service.dart';
 
 class RegistrationPage extends StatefulWidget {
   const RegistrationPage({super.key});
@@ -14,6 +15,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
   final TextEditingController dobController = TextEditingController();
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -166,13 +169,20 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   backgroundColor: Color(0xFF12A84F),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                onPressed: () {
-                  // TODO: Add validation / backend call
-                },
-                child: const Text(
-                  "Register",
-                  style: TextStyle(fontSize: 16),
-                ),
+                onPressed: _isLoading ? null : _register,
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        "Register",
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
               ),
             ),
             const SizedBox(height: 15),
@@ -199,6 +209,78 @@ class _RegistrationPageState extends State<RegistrationPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // Validate email
+  bool isValidEmail(String email) {
+    final regex = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
+    return regex.hasMatch(email);
+  }
+
+  // Registration method
+  void _register() async {
+    final fullName = fullNameController.text.trim();
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+    final phone = phoneController.text.trim();
+    final address = addressController.text.trim();
+    final dob = dobController.text.trim();
+
+    // Validation
+    if (fullName.isEmpty || email.isEmpty || password.isEmpty ||
+        phone.isEmpty || address.isEmpty || dob.isEmpty) {
+      _showSnackBar('Please fill in all fields');
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      _showSnackBar('Please enter a valid email');
+      return;
+    }
+
+    if (password.length < 6) {
+      _showSnackBar('Password must be at least 6 characters');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Register with Firebase
+    final result = await _authService.signUp(
+      email: email,
+      password: password,
+      fullName: fullName,
+      phoneNumber: phone,
+      address: address,
+      dateOfBirth: dob,
+      role: 'user', // Default role for new registrations
+    );
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (result['success']) {
+      _showSnackBar('Account created successfully!');
+      // Wait a bit then navigate back to login
+      await Future.delayed(const Duration(seconds: 1));
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } else {
+      _showSnackBar(result['message'] ?? 'Registration failed');
+    }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
       ),
     );
   }

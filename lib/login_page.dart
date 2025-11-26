@@ -3,6 +3,7 @@ import 'product_owner_dashboard.dart'; // Import Product Owner Dashboard
 import 'admin_dashboard.dart'; // Import Admin Dashboard
 import 'registration.dart'; // Import Registration Page
 import 'products.dart'; // Import Products Page
+import 'services/firebase_auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,6 +15,8 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final FirebaseAuthService _authService = FirebaseAuthService();
+  bool _isLoading = false;
 
   // Define colors based on the design image and provided registration code
   static const Color primaryBlue = Color(0xFF0F3360);
@@ -26,7 +29,7 @@ class _LoginPageState extends State<LoginPage> {
     return regex.hasMatch(email);
   }
 
-  void _login() {
+  void _login() async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
@@ -40,24 +43,42 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    // --- Simulated Login Logic ---
-    if (email == 'admin@example.com' && password == 'password') {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => AdminDashboard()),
-      );
-    } else if (email == 'owner@example.com' && password == 'password') {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => ProductOwnerDashboard()),
-      );
-    } else if (email == 'user@example.com' && password == 'password') {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const ProductsPage()),
-      );
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Firebase Authentication with role-based access
+    final result = await _authService.signIn(email, password);
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (result['success']) {
+      final userData = result['userData'] as Map<String, dynamic>;
+      final role = userData['role'] as String;
+
+      // Navigate based on role
+      if (role == 'admin') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => AdminDashboard()),
+        );
+      } else if (role == 'owner') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => ProductOwnerDashboard()),
+        );
+      } else if (role == 'user') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const ProductsPage()),
+        );
+      } else {
+        _showSnackBar('Invalid user role');
+      }
     } else {
-      _showSnackBar('Invalid login credentials');
+      _showSnackBar(result['message'] ?? 'Login failed');
     }
   }
 
@@ -189,7 +210,7 @@ class _LoginPageState extends State<LoginPage> {
 
                   // ---------------- LOG IN BUTTON ----------------
                   ElevatedButton(
-                    onPressed: _login,
+                    onPressed: _isLoading ? null : _login,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryBlue,
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -197,10 +218,19 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text(
-                      "Log In",
-                      style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            "Log In",
+                            style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
                   ),
 
                   const SizedBox(height: 15),
