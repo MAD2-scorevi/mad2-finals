@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'login.dart'; // Import login.dart to handle logout navigation
+import 'login_page.dart'; // Import login_page.dart to handle logout navigation
+import 'products.dart';
 
 class ProductsPage extends StatefulWidget {
   const ProductsPage({super.key});
@@ -172,7 +173,7 @@ class _ProductsPageState extends State<ProductsPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black12.withOpacity(0.05),
+            color: Colors.black12.withValues(alpha: 0.05),
             blurRadius: 6,
             offset: const Offset(0, 3),
           ),
