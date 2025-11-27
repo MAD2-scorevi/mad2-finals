@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend3/services/user_service.dart';
 import 'login_page.dart';
 import 'inventory_management_page.dart';
 import 'services/activity_service.dart';
@@ -15,6 +16,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   int selectedTab = 0;
   final ActivityService _activityService = ActivityService();
   final InventoryService _inventoryService = InventoryService();
+  final UserService _userService = UserService();
 
   final List<String> tabs = ["Overview", "Inventory", "User Management"];
 
@@ -476,46 +478,139 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ],
         ),
         const SizedBox(height: 20),
-        ...users.map(
-          (email) => Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8),
-              ],
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.person, color: Color(0xFF133B7C)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    email,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+
+        StreamBuilder(
+          stream: _userService.getUsers(limit: 10), 
+          builder: (context, snapshot){
+            if(snapshot.connectionState == ConnectionState.waiting){
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: CircularProgressIndicator(color: Color(0xFF133B7C)),
+                ),
+              );
+            }
+
+            if(!snapshot.hasData || snapshot.data!.isEmpty){
+              return Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 8,
                     ),
+                  ],
+                ),
+                child: const Center(
+                  child: Text(
+                    'No Users yet',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                 ),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      users.remove(email);
-                    });
-                  },
-                  child: const Text(
-                    "Remove",
-                    style: TextStyle(color: Colors.redAccent),
-                  ),
-                ),
-              ],
+              );
+            }
+
+            final users = snapshot.data!;
+            return ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: users.length,
+              itemBuilder: (context, index) {
+                return _userManagementTile(users[index]);
+              },
+            );
+
+          }
+        )
+
+
+
+
+        // ...users.map(
+        //   (email) => Container(
+        //     margin: const EdgeInsets.only(bottom: 10),
+        //     padding: const EdgeInsets.all(16),
+        //     decoration: BoxDecoration(
+        //       color: Colors.white,
+        //       borderRadius: BorderRadius.circular(14),
+        //       boxShadow: [
+        //         BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8),
+        //       ],
+        //     ),
+        //     child: Row(
+        //       children: [
+        //         const Icon(Icons.person, color: Color(0xFF133B7C)),
+        //         const SizedBox(width: 12),
+        //         Expanded(
+        //           child: Text(
+        //             email,
+        //             style: const TextStyle(
+        //               fontSize: 16,
+        //               fontWeight: FontWeight.w600,
+        //             ),
+        //           ),
+        //         ),
+        //         TextButton(
+        //           onPressed: () {
+        //             setState(() {
+        //               users.remove(email);
+        //             });
+        //           },
+        //           child: const Text(
+        //             "Remove",
+        //             style: TextStyle(color: Colors.redAccent),
+        //           ),
+        //         ),
+        //       ],
+        //     ),
+        //   ),
+        // ),
+      ],
+    );
+  }
+
+
+  Widget _userManagementTile(UserManageable user){
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.person, color: Color(0xFF133B7C)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              user.email,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-        ),
-      ],
+          TextButton(
+            onPressed: () {
+              setState(() {
+                // users.remove(email);
+              });
+            },
+            child: const Text(
+              "Remove",
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
