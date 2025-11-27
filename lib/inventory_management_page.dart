@@ -68,6 +68,7 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
             child: FloatingActionButton.extended(
               onPressed: () => _showAddItemModal(context),
               backgroundColor: const Color(0xFF133B7C),
+              foregroundColor: Colors.white,
               icon: const Icon(Icons.add),
               label: const Text('Add Product'),
             ),
@@ -484,6 +485,7 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
             label: const Text('Load Sample Data'),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF133B7C),
+              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             ),
           ),
@@ -682,6 +684,7 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF133B7C),
+              foregroundColor: Colors.white,
             ),
             child: const Text('Edit'),
           ),
@@ -866,6 +869,7 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF133B7C),
+              foregroundColor: Colors.white,
             ),
             child: const Text('Add Product'),
           ),
@@ -1027,7 +1031,10 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
                 }
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Update'),
           ),
         ],
@@ -1103,7 +1110,10 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Delete'),
           ),
         ],
