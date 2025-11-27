@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'login_page.dart';
 import 'manage_admins_page.dart';
+import 'inventory_management_page.dart';
 
 class ProductOwnerDashboard extends StatefulWidget {
   const ProductOwnerDashboard({super.key});
@@ -160,10 +161,12 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
 
                 // ================= MAIN CONTENT =================
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(25),
-                    child: _buildPageContent(),
-                  ),
+                  child: selectedTab == 1
+                      ? _buildPageContent() // Inventory tab without scroll wrapper
+                      : SingleChildScrollView(
+                          padding: const EdgeInsets.all(25),
+                          child: _buildPageContent(),
+                        ),
                 ),
               ],
             ),
@@ -290,56 +293,9 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
 
   // ============================ INVENTORY TAB =============================
   Widget _inventoryTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Inventory Overview",
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 15),
-        _inventoryTile("Arduino Uno", "42 in stock"),
-        _inventoryTile("Raspberry Pi 4", "18 in stock"),
-        _inventoryTile("Breadboard", "60 in stock"),
-        _inventoryTile("Jumper Wires (Set)", "120 in stock"),
-      ],
-    );
-  }
-
-  Widget _inventoryTile(String product, String stock) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.devices, color: Color(0xFF133B7C)),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              product,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-          ),
-          Text(
-            stock,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF0A1A3F),
-            ),
-          ),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.all(25),
+      child: const InventoryManagementPage(),
     );
   }
 

@@ -32,21 +32,21 @@ service cloud.firestore {
       // Users can read their own data
       allow read: if isAuthenticated() && request.auth.uid == userId;
 
-      // Admins can read all users
-      allow read: if isAdmin();
+      // Admins and Owners can read all users
+      allow read: if isAdmin() || isOwner();
 
       // Users can update their own data (except role and uid)
       allow update: if isAuthenticated() && request.auth.uid == userId
                     && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'uid']);
 
-      // Admins can update any user
-      allow update: if isAdmin();
+      // Admins and Owners can update any user
+      allow update: if isAdmin() || isOwner();
 
       // Only system can create users (through Firebase Auth registration)
       allow create: if isAuthenticated() && request.auth.uid == userId;
 
-      // Admins can delete users
-      allow delete: if isAdmin();
+      // Admins and Owners can delete users
+      allow delete: if isAdmin() || isOwner();
     }
 
     // Products collection
