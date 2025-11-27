@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'login_page.dart';
 import 'inventory_management_page.dart';
+import 'services/activity_service.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -11,6 +12,7 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   int selectedTab = 0;
+  final ActivityService _activityService = ActivityService();
 
   final List<String> tabs = ["Overview", "Inventory", "User Management"];
 
@@ -115,13 +117,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       const Spacer(),
                       // ------------------- LOGOUT ---------------------
                       InkWell(
-                        onTap: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => LoginPage(),
-                            ),
-                          );
+                        onTap: () async {
+                          await _activityService.logLogout();
+                          if (mounted) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => LoginPage(),
+                              ),
+                            );
+                          }
                         },
                         child: Container(
                           width: double.infinity,
@@ -215,9 +220,52 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ),
         const SizedBox(height: 10),
-        _activityTile("User John ordered Raspberry Pi 4 (x2)"),
-        _activityTile("Inventory updated: Arduino Uno restocked"),
-        _activityTile("Feature request submitted: Dark Mode"),
+        // Real-time activity feed
+        StreamBuilder<List<ActivityLog>>(
+          stream: _activityService.getRecentActivities(limit: 10),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: CircularProgressIndicator(color: Color(0xFF133B7C)),
+                ),
+              );
+            }
+
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Text(
+                    'No activities yet',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ),
+              );
+            }
+
+            final activities = snapshot.data!;
+            return ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: activities.length,
+              itemBuilder: (context, index) {
+                return _activityTile(activities[index]);
+              },
+            );
+          },
+        ),
       ],
     );
   }
@@ -261,7 +309,61 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Widget _activityTile(String msg) {
+  Widget _activityTile(ActivityLog activity) {
+    IconData icon;
+    Color iconColor;
+
+    // Choose icon and color based on activity type
+    switch (activity.activityType) {
+      case ActivityService.LOGIN:
+        icon = Icons.login;
+        iconColor = Colors.green;
+        break;
+      case ActivityService.LOGOUT:
+        icon = Icons.logout;
+        iconColor = Colors.grey;
+        break;
+      case ActivityService.INVENTORY_ADDED:
+        icon = Icons.add_circle;
+        iconColor = const Color(0xFF133B7C);
+        break;
+      case ActivityService.INVENTORY_UPDATED:
+        icon = Icons.edit;
+        iconColor = Colors.orange;
+        break;
+      case ActivityService.INVENTORY_DELETED:
+        icon = Icons.delete;
+        iconColor = Colors.red;
+        break;
+      case ActivityService.ORDER_PLACED:
+        icon = Icons.shopping_cart;
+        iconColor = Colors.purple;
+        break;
+      case ActivityService.FEATURE_REQUEST:
+        icon = Icons.lightbulb;
+        iconColor = Colors.amber;
+        break;
+      case ActivityService.ADMIN_PROMOTED:
+        icon = Icons.person_add;
+        iconColor = Colors.green;
+        break;
+      case ActivityService.ADMIN_DEMOTED:
+        icon = Icons.person_remove;
+        iconColor = Colors.red;
+        break;
+      case ActivityService.USER_REGISTERED:
+        icon = Icons.person;
+        iconColor = Colors.blue;
+        break;
+      case ActivityService.USER_INFO_UPDATED:
+        icon = Icons.edit;
+        iconColor = Colors.blueGrey;
+        break;
+      default:
+        icon = Icons.history;
+        iconColor = const Color(0xFF133B7C);
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
@@ -274,9 +376,27 @@ class _AdminDashboardState extends State<AdminDashboard> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.history, color: Color(0xFF133B7C)),
+          Icon(icon, color: iconColor, size: 22),
           const SizedBox(width: 12),
-          Expanded(child: Text(msg, style: const TextStyle(fontSize: 15))),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  activity.description,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${activity.userName} • ${activity.formattedTime}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

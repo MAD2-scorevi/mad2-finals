@@ -63,8 +63,13 @@ service cloud.firestore {
       // Everyone can read inventory (for browsing products)
       allow read: if true;
 
-      // Only admins can create, update, delete inventory items
-      allow create, update, delete: if isAdmin();
+      // Admins and owners can create, update, delete inventory items
+      allow create, update, delete: if isAdmin() || isOwner();
+
+      // Allow authenticated users to update stock quantity only (for order placement)
+      allow update: if isAuthenticated()
+                    && request.resource.data.stockQuantity < resource.data.stockQuantity
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stockQuantity', 'lastUpdated']);
     }
 
     // Orders collection
@@ -86,15 +91,6 @@ service cloud.firestore {
 
       // Only admins can delete orders
       allow delete: if isAdmin();
-    }
-
-    // Inventory collection
-    match /inventory/{productId} {
-      // Everyone can read inventory (for browsing products)
-      allow read: if true;
-
-      // Only admins and owners can create, update, delete inventory items
-      allow create, update, delete: if isAdmin() || isOwner();
     }
 
     // User Activities collection
