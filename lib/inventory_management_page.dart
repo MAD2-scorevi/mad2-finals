@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'services/inventory_service.dart';
+import 'services/activity_service.dart';
 
 class InventoryManagementPage extends StatefulWidget {
   const InventoryManagementPage({super.key});
@@ -11,75 +12,69 @@ class InventoryManagementPage extends StatefulWidget {
 }
 
 class _InventoryManagementPageState extends State<InventoryManagementPage> {
-  late final InventoryService _inventoryService;
+  final InventoryService _inventoryService = InventoryService();
+  final ActivityService _activityService = ActivityService();
   String _searchQuery = '';
   String _selectedCategory = 'All';
-  bool _isInitialized = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeService();
-  }
-
-  Future<void> _initializeService() async {
-    _inventoryService = InventoryService();
-    await _inventoryService.loadItems();
-    if (mounted) {
-      setState(() {
-        _isInitialized = true;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
-    if (!_isInitialized) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF133B7C)),
-      );
-    }
+    return StreamBuilder<List<InventoryItem>>(
+      stream: _inventoryService.itemsStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFF133B7C)),
+          );
+        }
 
-    final filteredItems = _getFilteredItems();
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
 
-    return Column(
-      children: [
-        // Header
-        _buildHeader(),
+        final items = snapshot.data ?? [];
+        final filteredItems = _getFilteredItems(items);
 
-        // Stats Cards
-        _buildStatsSection(),
+        return Column(
+          children: [
+            // Header
+            _buildHeader(),
 
-        // Search and Filter Section
-        _buildSearchAndFilter(),
+            // Stats Cards
+            _buildStatsSection(items),
 
-        // Inventory List
-        Expanded(
-          child: filteredItems.isEmpty
-              ? _buildEmptyState()
-              : _buildInventoryList(filteredItems),
-        ),
+            // Search and Filter Section
+            _buildSearchAndFilter(items),
 
-        // Floating Action Button alternative (positioned button)
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Align(
-            alignment: Alignment.bottomRight,
-            child: FloatingActionButton.extended(
-              onPressed: () => _showAddItemModal(context),
-              backgroundColor: const Color(0xFF133B7C),
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Product'),
+            // Inventory List
+            Expanded(
+              child: filteredItems.isEmpty
+                  ? _buildEmptyState()
+                  : _buildInventoryList(filteredItems),
             ),
-          ),
-        ),
-      ],
+
+            // Floating Action Button alternative (positioned button)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Align(
+                alignment: Alignment.bottomRight,
+                child: FloatingActionButton.extended(
+                  onPressed: () => _showAddItemModal(context),
+                  backgroundColor: const Color(0xFF133B7C),
+                  foregroundColor: Colors.white,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Product'),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  List<InventoryItem> _getFilteredItems() {
-    var items = _inventoryService.items;
+  List<InventoryItem> _getFilteredItems(List<InventoryItem> allItems) {
+    var items = allItems;
 
     // Filter by category
     if (_selectedCategory != 'All') {
@@ -90,7 +85,12 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
 
     // Filter by search query
     if (_searchQuery.isNotEmpty) {
-      items = _inventoryService.searchItems(_searchQuery);
+      final query = _searchQuery.toLowerCase();
+      items = items.where((item) {
+        return item.name.toLowerCase().contains(query) ||
+            item.category.toLowerCase().contains(query) ||
+            item.description.toLowerCase().contains(query);
+      }).toList();
     }
 
     return items;
@@ -128,14 +128,27 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
     );
   }
 
-  Widget _buildStatsSection() {
+  Widget _buildStatsSection(List<InventoryItem> items) {
+    final totalProducts = items.length;
+    final lowStockCount = items
+        .where(
+          (item) =>
+              item.stockQuantity > 0 &&
+              item.stockQuantity <= item.lowStockThreshold,
+        )
+        .length;
+    final outOfStockCount = items
+        .where((item) => item.stockQuantity <= 0)
+        .length;
+    final categories = items.map((item) => item.category).toSet().length;
+
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
           _buildStatCard(
             'Total Products',
-            _inventoryService.totalProducts.toString(),
+            totalProducts.toString(),
             Icons.inventory_2,
             Colors.blue,
             onTap: () {
@@ -148,26 +161,26 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
           const SizedBox(width: 12),
           _buildStatCard(
             'Low Stock',
-            _inventoryService.lowStockCount.toString(),
+            lowStockCount.toString(),
             Icons.warning_amber_rounded,
             Colors.orange,
-            onTap: () => _showLowStockItems(),
+            onTap: () => _showLowStockItems(items),
           ),
           const SizedBox(width: 12),
           _buildStatCard(
             'Out of Stock',
-            _inventoryService.outOfStockCount.toString(),
+            outOfStockCount.toString(),
             Icons.remove_circle_outline,
             Colors.red,
-            onTap: () => _showOutOfStockItems(),
+            onTap: () => _showOutOfStockItems(items),
           ),
           const SizedBox(width: 12),
           _buildStatCard(
             'Categories',
-            _inventoryService.categories.length.toString(),
+            categories.toString(),
             Icons.category,
             Colors.green,
-            onTap: () => _showCategoriesDialog(),
+            onTap: () => _showCategoriesDialog(items),
           ),
         ],
       ),
@@ -221,8 +234,14 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
     );
   }
 
-  void _showLowStockItems() {
-    final lowStockItems = _inventoryService.getLowStockItems();
+  void _showLowStockItems(List<InventoryItem> items) {
+    final lowStockItems = items
+        .where(
+          (item) =>
+              item.stockQuantity > 0 &&
+              item.stockQuantity <= item.lowStockThreshold,
+        )
+        .toList();
     _showFilteredItemsDialog(
       'Low Stock Items',
       lowStockItems,
@@ -231,8 +250,10 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
     );
   }
 
-  void _showOutOfStockItems() {
-    final outOfStockItems = _inventoryService.getOutOfStockItems();
+  void _showOutOfStockItems(List<InventoryItem> items) {
+    final outOfStockItems = items
+        .where((item) => item.stockQuantity <= 0)
+        .toList();
     _showFilteredItemsDialog(
       'Out of Stock Items',
       outOfStockItems,
@@ -299,13 +320,14 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
     );
   }
 
-  void _showCategoriesDialog() {
-    final categories = _inventoryService.categories;
+  void _showCategoriesDialog(List<InventoryItem> items) {
+    final categories = items.map((item) => item.category).toSet().toList()
+      ..sort();
     final categoryStats = <String, int>{};
 
     for (var category in categories) {
-      categoryStats[category] = _inventoryService
-          .getItemsByCategory(category)
+      categoryStats[category] = items
+          .where((item) => item.category == category)
           .length;
     }
 
@@ -374,8 +396,11 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
     );
   }
 
-  Widget _buildSearchAndFilter() {
-    final categories = ['All', ..._inventoryService.categories];
+  Widget _buildSearchAndFilter(List<InventoryItem> items) {
+    final categories = [
+      'All',
+      ...items.map((item) => item.category).toSet().toList()..sort(),
+    ];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -856,6 +881,9 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
                 final success = await _inventoryService.addItem(newItem);
                 if (!mounted) return;
                 if (success) {
+                  // Log activity
+                  await _activityService.logInventoryAdded(newItem.name);
+
                   Navigator.pop(context);
                   setState(() {});
                   ScaffoldMessenger.of(context).showSnackBar(

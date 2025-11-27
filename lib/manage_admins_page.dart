@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'services/activity_service.dart';
 
 class ManageAdminsPage extends StatefulWidget {
   const ManageAdminsPage({super.key});
@@ -10,6 +11,7 @@ class ManageAdminsPage extends StatefulWidget {
 
 class _ManageAdminsPageState extends State<ManageAdminsPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final ActivityService _activityService = ActivityService();
   final TextEditingController emailController = TextEditingController();
   bool _isLoading = true;
   List<Map<String, dynamic>> admins = [];
@@ -267,6 +269,9 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
         'role': 'admin',
       });
 
+      // Log activity
+      await _activityService.logAdminPromoted(email);
+
       emailController.clear();
       _loadAdmins();
 
@@ -435,6 +440,12 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
             'address': addressController.text.trim(),
           });
 
+          // Log activity
+          await _activityService.logUserInfoUpdate({
+            'userEmail': admin['email'],
+            'action': 'Admin profile updated',
+          });
+
           _loadAdmins();
 
           if (mounted) {
@@ -481,6 +492,10 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
         await _firestore.collection('users').doc(userId).update({
           'role': 'user',
         });
+
+        // Log activity
+        await _activityService.logAdminDemoted(email);
+
         _loadAdmins(); // Reload the list
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'login_page.dart';
 import 'manage_admins_page.dart';
 import 'inventory_management_page.dart';
+import 'services/inventory_service.dart';
+import 'services/activity_service.dart';
 
 class ProductOwnerDashboard extends StatefulWidget {
   const ProductOwnerDashboard({super.key});
@@ -12,6 +14,8 @@ class ProductOwnerDashboard extends StatefulWidget {
 
 class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
   int selectedTab = 0;
+  final InventoryService _inventoryService = InventoryService();
+  final ActivityService _activityService = ActivityService();
 
   final List<String> tabs = [
     "Overview",
@@ -19,6 +23,12 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
     "Feature Requests",
     "Manage Admins",
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _inventoryService.loadItems();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,13 +135,16 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
 
                       // ================= LOGOUT BUTTON =================
                       InkWell(
-                        onTap: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => LoginPage(),
-                            ),
-                          );
+                        onTap: () async {
+                          await _activityService.logLogout();
+                          if (mounted) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => LoginPage(),
+                              ),
+                            );
+                          }
                         },
                         child: Container(
                           width: double.infinity,
@@ -195,24 +208,86 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            _statCard(
-              title: "Total Products",
-              value: "152",
-              icon: Icons.inventory,
-            ),
-            _statCard(
-              title: "Low Stock",
-              value: "12",
-              icon: Icons.warning_amber_rounded,
-            ),
-            _statCard(
-              title: "Categories",
-              value: "9",
-              icon: Icons.category_rounded,
-            ),
-          ],
+        // Real-time statistics cards
+        StreamBuilder<List<InventoryItem>>(
+          stream: _inventoryService.itemsStream,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Row(
+                children: [
+                  _statCard(
+                    title: "Total Products",
+                    value: "0",
+                    icon: Icons.inventory,
+                  ),
+                  _statCard(
+                    title: "Low Stock",
+                    value: "0",
+                    icon: Icons.warning_amber_rounded,
+                  ),
+                  _statCard(
+                    title: "Categories",
+                    value: "0",
+                    icon: Icons.category_rounded,
+                  ),
+                ],
+              );
+            }
+
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Row(
+                children: [
+                  _statCard(
+                    title: "Total Products",
+                    value: "0",
+                    icon: Icons.inventory,
+                  ),
+                  _statCard(
+                    title: "Low Stock",
+                    value: "0",
+                    icon: Icons.warning_amber_rounded,
+                  ),
+                  _statCard(
+                    title: "Categories",
+                    value: "0",
+                    icon: Icons.category_rounded,
+                  ),
+                ],
+              );
+            }
+
+            final items = snapshot.data!;
+            final totalProducts = items.length;
+            final lowStock = items
+                .where(
+                  (item) => item.stockQuantity > 0 && item.stockQuantity <= 5,
+                )
+                .length;
+            final categories = items
+                .map((item) => item.category)
+                .toSet()
+                .length;
+
+            return Row(
+              children: [
+                _statCard(
+                  title: "Total Products",
+                  value: "$totalProducts",
+                  icon: Icons.inventory,
+                ),
+                _statCard(
+                  title: "Low Stock",
+                  value: "$lowStock",
+                  icon: Icons.warning_amber_rounded,
+                ),
+                _statCard(
+                  title: "Categories",
+                  value: "$categories",
+                  icon: Icons.category_rounded,
+                ),
+              ],
+            );
+          },
         ),
         const SizedBox(height: 30),
         const Text(
@@ -224,9 +299,52 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
           ),
         ),
         const SizedBox(height: 10),
-        _activityTile("User John ordered Raspberry Pi 4 (x2)"),
-        _activityTile("Inventory updated: Arduino Uno restocked"),
-        _activityTile("Feature request submitted: Dark Mode"),
+        // Real-time activity feed
+        StreamBuilder<List<ActivityLog>>(
+          stream: _activityService.getRecentActivities(limit: 10),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: CircularProgressIndicator(color: Color(0xFF133B7C)),
+                ),
+              );
+            }
+
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Text(
+                    'No activities yet',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ),
+              );
+            }
+
+            final activities = snapshot.data!;
+            return ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: activities.length,
+              itemBuilder: (context, index) {
+                return _activityTile(activities[index]);
+              },
+            );
+          },
+        ),
       ],
     );
   }
@@ -270,7 +388,61 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
     );
   }
 
-  Widget _activityTile(String msg) {
+  Widget _activityTile(ActivityLog activity) {
+    IconData icon;
+    Color iconColor;
+
+    // Choose icon and color based on activity type
+    switch (activity.activityType) {
+      case ActivityService.LOGIN:
+        icon = Icons.login;
+        iconColor = Colors.green;
+        break;
+      case ActivityService.LOGOUT:
+        icon = Icons.logout;
+        iconColor = Colors.grey;
+        break;
+      case ActivityService.INVENTORY_ADDED:
+        icon = Icons.add_circle;
+        iconColor = const Color(0xFF133B7C);
+        break;
+      case ActivityService.INVENTORY_UPDATED:
+        icon = Icons.edit;
+        iconColor = Colors.orange;
+        break;
+      case ActivityService.INVENTORY_DELETED:
+        icon = Icons.delete;
+        iconColor = Colors.red;
+        break;
+      case ActivityService.ORDER_PLACED:
+        icon = Icons.shopping_cart;
+        iconColor = Colors.purple;
+        break;
+      case ActivityService.FEATURE_REQUEST:
+        icon = Icons.lightbulb;
+        iconColor = Colors.amber;
+        break;
+      case ActivityService.ADMIN_PROMOTED:
+        icon = Icons.person_add;
+        iconColor = Colors.green;
+        break;
+      case ActivityService.ADMIN_DEMOTED:
+        icon = Icons.person_remove;
+        iconColor = Colors.red;
+        break;
+      case ActivityService.USER_REGISTERED:
+        icon = Icons.person;
+        iconColor = Colors.blue;
+        break;
+      case ActivityService.USER_INFO_UPDATED:
+        icon = Icons.edit;
+        iconColor = Colors.blueGrey;
+        break;
+      default:
+        icon = Icons.history;
+        iconColor = const Color(0xFF133B7C);
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
@@ -283,9 +455,27 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.history, color: Color(0xFF133B7C)),
+          Icon(icon, color: iconColor, size: 22),
           const SizedBox(width: 12),
-          Expanded(child: Text(msg, style: const TextStyle(fontSize: 15))),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  activity.description,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${activity.userName} • ${activity.formattedTime}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

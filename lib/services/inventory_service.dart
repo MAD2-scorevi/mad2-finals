@@ -62,7 +62,7 @@ class InventoryItem {
     );
   }
 
-  /// Convert to JSON
+  /// Convert to JSON for Firestore
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -72,12 +72,22 @@ class InventoryItem {
       'price': price,
       'description': description,
       'lowStockThreshold': lowStockThreshold,
-      'lastUpdated': lastUpdated.toIso8601String(),
+      'lastUpdated': Timestamp.fromDate(lastUpdated),
     };
   }
 
   /// Create from JSON
   factory InventoryItem.fromJson(Map<String, dynamic> json) {
+    // Handle lastUpdated field - it could be Timestamp, String, or null
+    DateTime lastUpdated;
+    if (json['lastUpdated'] is Timestamp) {
+      lastUpdated = (json['lastUpdated'] as Timestamp).toDate();
+    } else if (json['lastUpdated'] is String) {
+      lastUpdated = DateTime.parse(json['lastUpdated'] as String);
+    } else {
+      lastUpdated = DateTime.now();
+    }
+
     return InventoryItem(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -86,7 +96,7 @@ class InventoryItem {
       price: (json['price'] as num).toDouble(),
       description: json['description'] as String,
       lowStockThreshold: json['lowStockThreshold'] as int? ?? 10,
-      lastUpdated: DateTime.parse(json['lastUpdated'] as String),
+      lastUpdated: lastUpdated,
     );
   }
 
@@ -108,6 +118,36 @@ class InventoryService extends ChangeNotifier {
 
   /// Get all inventory items
   List<InventoryItem> get items => List.unmodifiable(_items);
+
+  /// Stream of inventory items for real-time updates
+  Stream<List<InventoryItem>> get itemsStream {
+    return _firestore.collection(_collectionName).snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+
+        // Handle lastUpdated field - it could be Timestamp, String, or null
+        DateTime lastUpdated;
+        if (data['lastUpdated'] is Timestamp) {
+          lastUpdated = (data['lastUpdated'] as Timestamp).toDate();
+        } else if (data['lastUpdated'] is String) {
+          lastUpdated = DateTime.parse(data['lastUpdated'] as String);
+        } else {
+          lastUpdated = DateTime.now();
+        }
+
+        return InventoryItem(
+          id: doc.id,
+          name: data['name'] as String,
+          category: data['category'] as String,
+          stockQuantity: data['stockQuantity'] as int,
+          price: (data['price'] as num).toDouble(),
+          description: data['description'] as String,
+          lowStockThreshold: data['lowStockThreshold'] as int? ?? 10,
+          lastUpdated: lastUpdated,
+        );
+      }).toList();
+    });
+  }
 
   /// Check if data is loading
   bool get isLoading => _isLoading;

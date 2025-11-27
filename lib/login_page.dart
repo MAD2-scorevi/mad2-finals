@@ -4,6 +4,7 @@ import 'admin_dashboard.dart'; // Import Admin Dashboard
 import 'registration.dart'; // Import Registration Page
 import 'products.dart'; // Import Products Page
 import 'services/firebase_auth_service.dart';
+import 'services/activity_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -16,6 +17,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final FirebaseAuthService _authService = FirebaseAuthService();
+  final ActivityService _activityService = ActivityService();
   bool _isLoading = false;
 
   // Define colors based on the design image and provided registration code
@@ -58,6 +60,9 @@ class _LoginPageState extends State<LoginPage> {
       final userData = result['userData'] as Map<String, dynamic>;
       final role = userData['role'] as String;
 
+      // Log login activity
+      await _activityService.logLogin();
+
       // Navigate based on role
       if (role == 'admin') {
         Navigator.pushReplacement(
@@ -84,10 +89,7 @@ class _LoginPageState extends State<LoginPage> {
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 2),
-      ),
+      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
     );
   }
 
@@ -138,9 +140,7 @@ class _LoginPageState extends State<LoginPage> {
                 left: 20,
                 right: 20,
               ),
-              decoration: const BoxDecoration(
-                color: primaryBlue,
-              ),
+              decoration: const BoxDecoration(color: primaryBlue),
               child: const Column(
                 children: [
                   Text(
@@ -154,10 +154,7 @@ class _LoginPageState extends State<LoginPage> {
                   SizedBox(height: 8),
                   Text(
                     "Makerlab Electronics Philippines",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.white, fontSize: 14),
                   ),
                 ],
               ),
@@ -169,13 +166,15 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-
                   // EMAIL or PHONE NUMBER LABEL
                   const Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       "Email or Phone Number",
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -194,7 +193,10 @@ class _LoginPageState extends State<LoginPage> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       "Password",
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -229,7 +231,11 @@ class _LoginPageState extends State<LoginPage> {
                           )
                         : const Text(
                             "Log In",
-                            style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                   ),
 
@@ -259,12 +265,16 @@ class _LoginPageState extends State<LoginPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: const [
-                      Expanded(child: Divider(thickness: 1, color: Colors.grey)),
+                      Expanded(
+                        child: Divider(thickness: 1, color: Colors.grey),
+                      ),
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8),
                         child: Text("or", style: TextStyle(color: Colors.grey)),
                       ),
-                      Expanded(child: Divider(thickness: 1, color: Colors.grey)),
+                      Expanded(
+                        child: Divider(thickness: 1, color: Colors.grey),
+                      ),
                     ],
                   ),
 
@@ -275,7 +285,9 @@ class _LoginPageState extends State<LoginPage> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => RegistrationPage()),
+                        MaterialPageRoute(
+                          builder: (context) => RegistrationPage(),
+                        ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
@@ -287,7 +299,11 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     child: const Text(
                       "Create Account",
-                      style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
 
@@ -301,4 +317,5 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
+
 // Updated for deployment
