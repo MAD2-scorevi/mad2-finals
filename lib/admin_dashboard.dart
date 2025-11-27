@@ -525,56 +525,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
           }
         )
-
-
-
-
-        // ...users.map(
-        //   (email) => Container(
-        //     margin: const EdgeInsets.only(bottom: 10),
-        //     padding: const EdgeInsets.all(16),
-        //     decoration: BoxDecoration(
-        //       color: Colors.white,
-        //       borderRadius: BorderRadius.circular(14),
-        //       boxShadow: [
-        //         BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8),
-        //       ],
-        //     ),
-        //     child: Row(
-        //       children: [
-        //         const Icon(Icons.person, color: Color(0xFF133B7C)),
-        //         const SizedBox(width: 12),
-        //         Expanded(
-        //           child: Text(
-        //             email,
-        //             style: const TextStyle(
-        //               fontSize: 16,
-        //               fontWeight: FontWeight.w600,
-        //             ),
-        //           ),
-        //         ),
-        //         TextButton(
-        //           onPressed: () {
-        //             setState(() {
-        //               users.remove(email);
-        //             });
-        //           },
-        //           child: const Text(
-        //             "Remove",
-        //             style: TextStyle(color: Colors.redAccent),
-        //           ),
-        //         ),
-        //       ],
-        //     ),
-        //   ),
-        // ),
       ],
     );
   }
 
-
   Widget _userManagementTile(UserManageable user){
-    
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(16),
