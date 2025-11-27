@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'login_page.dart';
 import 'inventory_management_page.dart';
 import 'services/activity_service.dart';
+import 'services/inventory_service.dart';
+import 'services/order_service.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -13,6 +15,8 @@ class AdminDashboard extends StatefulWidget {
 class _AdminDashboardState extends State<AdminDashboard> {
   int selectedTab = 0;
   final ActivityService _activityService = ActivityService();
+  final InventoryService _inventoryService = InventoryService();
+  final OrderService _orderService = OrderService();
 
   final List<String> tabs = ["Overview", "Inventory", "User Management"];
 
@@ -191,24 +195,76 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            _statCard(
-              title: "Total Products",
-              value: "134",
-              icon: Icons.inventory,
-            ),
-            _statCard(
-              title: "Low Stock",
-              value: "12",
-              icon: Icons.warning_amber_rounded,
-            ),
-            _statCard(
-              title: "Categories",
-              value: "9",
-              icon: Icons.category_rounded,
-            ),
-          ],
+        // Real-time inventory stats
+        StreamBuilder<List<InventoryItem>>(
+          stream: _inventoryService.itemsStream,
+          builder: (context, snapshot) {
+            final items = snapshot.data ?? [];
+            final totalProducts = items.length;
+            final lowStock = items
+                .where((item) => item.stockQuantity <= 5)
+                .length;
+            final categories = items
+                .map((item) => item.category)
+                .toSet()
+                .length;
+
+            return Row(
+              children: [
+                _statCard(
+                  title: "Total Products",
+                  value: totalProducts.toString(),
+                  icon: Icons.inventory,
+                ),
+                _statCard(
+                  title: "Low Stock",
+                  value: lowStock.toString(),
+                  icon: Icons.warning_amber_rounded,
+                ),
+                _statCard(
+                  title: "Categories",
+                  value: categories.toString(),
+                  icon: Icons.category_rounded,
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 20),
+        // Order statistics
+        StreamBuilder<List<Order>>(
+          stream: _orderService.getAllOrdersStream(),
+          builder: (context, snapshot) {
+            final orders = snapshot.data ?? [];
+            final totalOrders = orders.length;
+            final completedOrders = orders
+                .where((o) => o.status == 'completed')
+                .length;
+            final totalRevenue = orders.fold(
+              0.0,
+              (sum, order) => sum + order.totalAmount,
+            );
+
+            return Row(
+              children: [
+                _statCard(
+                  title: "Total Orders",
+                  value: totalOrders.toString(),
+                  icon: Icons.shopping_bag,
+                ),
+                _statCard(
+                  title: "Completed",
+                  value: completedOrders.toString(),
+                  icon: Icons.check_circle,
+                ),
+                _statCard(
+                  title: "Revenue",
+                  value: "\$${totalRevenue.toStringAsFixed(0)}",
+                  icon: Icons.attach_money,
+                ),
+              ],
+            );
+          },
         ),
         const SizedBox(height: 30),
         const Text(
