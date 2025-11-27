@@ -83,7 +83,7 @@ class Order {
       items: itemsData.map((item) => OrderItem.fromJson(item)).toList(),
       totalAmount: (data['totalAmount'] ?? 0).toDouble(),
       orderDate: orderDate,
-      status: data['status'] ?? 'pending',
+      status: data['status'] ?? 'completed',
     );
   }
 
