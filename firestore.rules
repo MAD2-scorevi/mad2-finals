@@ -93,8 +93,20 @@ service cloud.firestore {
       // Everyone can read inventory (for browsing products)
       allow read: if true;
 
-      // Only admins can create, update, delete inventory items
-      allow create, update, delete: if isAdmin();
+      // Only admins and owners can create, update, delete inventory items
+      allow create, update, delete: if isAdmin() || isOwner();
+    }
+
+    // Activities collection
+    match /activities/{activityId} {
+      // Authenticated users can create activity logs
+      allow create: if isAuthenticated();
+
+      // Admins and owners can read all activities
+      allow read: if isAdmin() || isOwner();
+
+      // No one can update or delete activities (audit trail)
+      allow update, delete: if false;
     }
 
     // Categories collection (example)
