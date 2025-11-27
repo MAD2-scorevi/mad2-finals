@@ -195,74 +195,42 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Real-time inventory stats
+        // Real-time stats - combined inventory and orders
         StreamBuilder<List<InventoryItem>>(
           stream: _inventoryService.itemsStream,
-          builder: (context, snapshot) {
-            final items = snapshot.data ?? [];
+          builder: (context, inventorySnapshot) {
+            final items = inventorySnapshot.data ?? [];
             final totalProducts = items.length;
             final lowStock = items
                 .where((item) => item.stockQuantity <= 5)
                 .length;
-            final categories = items
-                .map((item) => item.category)
-                .toSet()
-                .length;
 
-            return Row(
-              children: [
-                _statCard(
-                  title: "Total Products",
-                  value: totalProducts.toString(),
-                  icon: Icons.inventory,
-                ),
-                _statCard(
-                  title: "Low Stock",
-                  value: lowStock.toString(),
-                  icon: Icons.warning_amber_rounded,
-                ),
-                _statCard(
-                  title: "Categories",
-                  value: categories.toString(),
-                  icon: Icons.category_rounded,
-                ),
-              ],
-            );
-          },
-        ),
-        const SizedBox(height: 20),
-        // Order statistics
-        StreamBuilder<List<Order>>(
-          stream: _orderService.getAllOrdersStream(),
-          builder: (context, snapshot) {
-            final orders = snapshot.data ?? [];
-            final totalOrders = orders.length;
-            final completedOrders = orders
-                .where((o) => o.status == 'completed')
-                .length;
-            final totalRevenue = orders.fold(
-              0.0,
-              (sum, order) => sum + order.totalAmount,
-            );
+            return StreamBuilder<List<Order>>(
+              stream: _orderService.getAllOrdersStream(),
+              builder: (context, orderSnapshot) {
+                final orders = orderSnapshot.data ?? [];
+                final totalOrders = orders.length;
 
-            return Row(
-              children: [
-                _statCard(
-                  title: "Total Orders",
-                  value: totalOrders.toString(),
-                  icon: Icons.shopping_bag,
-                ),
-                _statCard(
-                  title: "Completed",
-                  value: completedOrders.toString(),
-                  icon: Icons.check_circle,
-                ),
-                _statCard(
-                  title: "Revenue",
-                  value: "\$${totalRevenue.toStringAsFixed(0)}",
-                  icon: Icons.attach_money,
-                ),
-              ],
+                return Row(
+                  children: [
+                    _statCard(
+                      title: "Total Products",
+                      value: totalProducts.toString(),
+                      icon: Icons.inventory,
+                    ),
+                    _statCard(
+                      title: "Low Stock",
+                      value: lowStock.toString(),
+                      icon: Icons.warning_amber_rounded,
+                    ),
+                    _statCard(
+                      title: "Total Orders",
+                      value: totalOrders.toString(),
+                      icon: Icons.shopping_bag,
+                    ),
+                  ],
+                );
+              },
             );
           },
         ),
