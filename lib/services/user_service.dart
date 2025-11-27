@@ -38,8 +38,9 @@ class UserManageable{
 
 class UserService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  // final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  // Tested. At least this works
   Stream<List<UserManageable>> getUsers({int limit = 20}){
     return _firestore
       .collection('users')
@@ -55,6 +56,28 @@ class UserService {
           .toList(),
       );
   }
-  // Future<void> addUser(String email);
-  // Future<void> removeUser(String id);
+
+  // Untested. Research says that if you try to use the following 
+  // it would sign you out and sign you in as the following
+  Future<void> addUser({required String email}) async{
+    try {
+      await _auth.createUserWithEmailAndPassword(email: email, password: "abcd123");
+    } catch (e) {
+      throw StateError("Error adding user $email: $e");
+    }
+  }
+
+  // I don't think you can delete any user, just your self so this might not work? 
+  // Please advise on what to do
+  Future<void> removeUser({required String id})async{
+    // The lines below do nothing so commented but I want you to know I tried.
+      // final user = _auth.currentUser;
+      // if(user == null) return;
+    try {
+      // Untested. Nadedelete lang ata iyung users collection but not the firestore auth users
+      await _firestore.collection('users').doc(id).delete(); //???
+    } catch (e) {
+      throw StateError("Error deleting $id: $e");
+    }
+  }
 }
