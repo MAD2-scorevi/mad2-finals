@@ -97,8 +97,8 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin() || isOwner();
     }
 
-    // Activities collection
-    match /activities/{activityId} {
+    // User Activities collection
+    match /user_activities/{activityId} {
       // Authenticated users can create activity logs
       allow create: if isAuthenticated();
 
