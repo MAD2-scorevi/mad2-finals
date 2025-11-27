@@ -3,6 +3,8 @@ import 'login_page.dart';
 import 'manage_admins_page.dart';
 
 class ProductOwnerDashboard extends StatefulWidget {
+  const ProductOwnerDashboard({super.key});
+
   @override
   _ProductOwnerDashboardState createState() => _ProductOwnerDashboardState();
 }
@@ -48,10 +50,7 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
                 SizedBox(height: 6),
                 Text(
                   "Manage products, stock levels, and electronics categories.",
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
               ],
             ),
@@ -88,13 +87,14 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
                       // --------- LIST OF TABS ----------
                       ...List.generate(
                         tabs.length,
-                            (index) => InkWell(
+                        (index) => InkWell(
                           onTap: () {
                             if (tabs[index] == "Manage Admins") {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (context) => ManageAdminsPage()),
+                                  builder: (context) => ManageAdminsPage(),
+                                ),
                               );
                               return;
                             }
@@ -103,7 +103,9 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
                           child: Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 14),
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
                             color: selectedTab == index
                                 ? const Color(0xFF1F3D60)
                                 : Colors.transparent,
@@ -126,13 +128,16 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => LoginPage()),
+                              builder: (context) => LoginPage(),
+                            ),
                           );
                         },
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14),
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
                           color: const Color(0xFF8B0000),
                           child: const Row(
                             children: [
@@ -190,17 +195,20 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
         Row(
           children: [
             _statCard(
-                title: "Total Products",
-                value: "152",
-                icon: Icons.inventory),
+              title: "Total Products",
+              value: "152",
+              icon: Icons.inventory,
+            ),
             _statCard(
-                title: "Low Stock",
-                value: "12",
-                icon: Icons.warning_amber_rounded),
+              title: "Low Stock",
+              value: "12",
+              icon: Icons.warning_amber_rounded,
+            ),
             _statCard(
-                title: "Categories",
-                value: "9",
-                icon: Icons.category_rounded),
+              title: "Categories",
+              value: "9",
+              icon: Icons.category_rounded,
+            ),
           ],
         ),
         const SizedBox(height: 30),
@@ -267,19 +275,14 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8),
         ],
       ),
       child: Row(
         children: [
           const Icon(Icons.history, color: Color(0xFF133B7C)),
           const SizedBox(width: 12),
-          Expanded(
-            child: Text(msg, style: const TextStyle(fontSize: 15)),
-          ),
+          Expanded(child: Text(msg, style: const TextStyle(fontSize: 15))),
         ],
       ),
     );
@@ -315,10 +318,7 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8),
         ],
       ),
       child: Row(
@@ -328,8 +328,7 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
           Expanded(
             child: Text(
               product,
-              style:
-              const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ),
           Text(
@@ -374,24 +373,17 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8),
         ],
       ),
       child: Row(
         children: [
-          const Icon(Icons.check_circle_outline,
-              color: Color(0xFF133B7C)),
+          const Icon(Icons.check_circle_outline, color: Color(0xFF133B7C)),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               feature,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
           ),
         ],

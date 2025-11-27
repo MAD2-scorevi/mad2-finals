@@ -58,6 +58,15 @@ service cloud.firestore {
       allow create, update, delete: if isOwner() || isAdmin();
     }
 
+    // Inventory collection
+    match /inventory/{productId} {
+      // Everyone can read inventory (for browsing products)
+      allow read: if true;
+
+      // Only admins can create, update, delete inventory items
+      allow create, update, delete: if isAdmin();
+    }
+
     // Orders collection
     match /orders/{orderId} {
       // Users can read their own orders
@@ -77,6 +86,15 @@ service cloud.firestore {
 
       // Only admins can delete orders
       allow delete: if isAdmin();
+    }
+
+    // Inventory collection
+    match /inventory/{productId} {
+      // Everyone can read inventory (for browsing products)
+      allow read: if true;
+
+      // Only admins can create, update, delete inventory items
+      allow create, update, delete: if isAdmin();
     }
 
     // Categories collection (example)

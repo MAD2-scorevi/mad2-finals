@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class ManageAdminsPage extends StatefulWidget {
+  const ManageAdminsPage({super.key});
+
   @override
   _ManageAdminsPageState createState() => _ManageAdminsPageState();
 }
@@ -9,7 +11,7 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
   final List<String> admins = [
     "admin1@gmail.com",
     "admin2@gmail.com",
-    "inventorylead@gmail.com"
+    "inventorylead@gmail.com",
   ];
 
   final TextEditingController emailController = TextEditingController();
@@ -59,7 +61,10 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF133B7C),
-                    padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 18,
+                      horizontal: 20,
+                    ),
                   ),
                   onPressed: () {
                     if (emailController.text.isNotEmpty) {
@@ -70,7 +75,7 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
                     }
                   },
                   child: const Text("Add"),
-                )
+                ),
               ],
             ),
             const SizedBox(height: 25),
@@ -107,10 +112,7 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8),
         ],
       ),
       child: Row(
@@ -133,7 +135,7 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
               "Remove",
               style: TextStyle(color: Colors.redAccent),
             ),
-          )
+          ),
         ],
       ),
     );

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'login_page.dart'; // Import login_page.dart to handle logout navigation
-import 'products.dart';
 
 class ProductsPage extends StatefulWidget {
   const ProductsPage({super.key});
@@ -16,31 +15,26 @@ class _ProductsPageState extends State<ProductsPage> {
       "name": "Arduino Uno R3",
       "price": 850.00,
       "category": "Microcontrollers",
-      "qty": 0
+      "qty": 0,
     },
     {
       "name": "Raspberry Pi 4",
       "price": 3200.00,
       "category": "Single Board Computers",
-      "qty": 0
+      "qty": 0,
     },
     {
       "name": "ESP32 DevKit",
       "price": 450.00,
       "category": "Microcontrollers",
-      "qty": 0
+      "qty": 0,
     },
-    {
-      "name": "LED Strip 5M",
-      "price": 320.00,
-      "category": "Lighting",
-      "qty": 0
-    },
+    {"name": "LED Strip 5M", "price": 320.00, "category": "Lighting", "qty": 0},
     {
       "name": "Servo Motor SG90",
       "price": 85.00,
       "category": "Motors",
-      "qty": 0
+      "qty": 0,
     },
   ];
 
@@ -51,13 +45,16 @@ class _ProductsPageState extends State<ProductsPage> {
 
       // ---------------- HEADER ----------------
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F3360), // Background color of the AppBar
-        automaticallyImplyLeading: false, // To remove the back button in the AppBar
+        backgroundColor: const Color(
+          0xFF0F3360,
+        ), // Background color of the AppBar
+        automaticallyImplyLeading:
+            false, // To remove the back button in the AppBar
         elevation: 0, // Removes the shadow below the AppBar
         title: const Text(
-          "Hi, User!",  // Title of the AppBar
+          "Hi, User!", // Title of the AppBar
           style: TextStyle(
-            color: Colors.white,  // Title color (white)
+            color: Colors.white, // Title color (white)
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -66,15 +63,17 @@ class _ProductsPageState extends State<ProductsPage> {
           IconButton(
             icon: const Icon(
               Icons.settings,
-              color: Colors.white,  // Change the color to white (or any color you like)
+              color: Colors
+                  .white, // Change the color to white (or any color you like)
             ),
             onPressed: () {
-              _showSettingsMenu(context); // Opens the settings menu (bottom sheet)
+              _showSettingsMenu(
+                context,
+              ); // Opens the settings menu (bottom sheet)
             },
           ),
         ],
       ),
-
 
       // ---------------- BODY ----------------
       body: Padding(
@@ -123,7 +122,7 @@ class _ProductsPageState extends State<ProductsPage> {
             ListTile(
               leading: const Icon(
                 Icons.settings,
-                color: Color(0xFF0F3360),  // Custom color for Settings icon
+                color: Color(0xFF0F3360), // Custom color for Settings icon
               ),
               title: const Text('Settings'),
               onTap: () {
@@ -134,7 +133,7 @@ class _ProductsPageState extends State<ProductsPage> {
             ListTile(
               leading: const Icon(
                 Icons.history,
-                color: Color(0xFF0F3360),  // Custom color for History icon
+                color: Color(0xFF0F3360), // Custom color for History icon
               ),
               title: const Text('History'),
               onTap: () {
@@ -145,7 +144,7 @@ class _ProductsPageState extends State<ProductsPage> {
             ListTile(
               leading: const Icon(
                 Icons.logout,
-                color: Colors.red,  // Custom color for Logout icon (red)
+                color: Colors.red, // Custom color for Logout icon (red)
               ),
               title: const Text('Log Out'),
               onTap: () {
@@ -161,7 +160,6 @@ class _ProductsPageState extends State<ProductsPage> {
       },
     );
   }
-
 
   // ---------------- PRODUCT CARD UI ----------------
   Widget _buildProductCard(Map<String, dynamic> product) {
@@ -185,10 +183,7 @@ class _ProductsPageState extends State<ProductsPage> {
           // PRODUCT NAME
           Text(
             product["name"],
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
 
           const SizedBox(height: 4),
@@ -196,18 +191,14 @@ class _ProductsPageState extends State<ProductsPage> {
           // PRICE
           Text(
             "₱${product['price'].toStringAsFixed(2)}",
-            style: const TextStyle(
-              fontSize: 15,
-              color: Colors.black87,
-            ),
+            style: const TextStyle(fontSize: 15, color: Colors.black87),
           ),
 
           const SizedBox(height: 6),
 
           // CATEGORY TAG
           Container(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
               color: const Color(0xFFE6F0FF),
               borderRadius: BorderRadius.circular(20),

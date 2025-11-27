@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'login_page.dart';
+import 'inventory_management_page.dart';
 
 class AdminDashboard extends StatefulWidget {
+  const AdminDashboard({super.key});
+
   @override
   _AdminDashboardState createState() => _AdminDashboardState();
 }
@@ -56,10 +59,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 SizedBox(height: 6),
                 Text(
                   "Manage products, stock levels, and electronics categories.",
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
               ],
             ),
@@ -92,18 +92,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       const SizedBox(height: 20),
                       ...List.generate(
                         tabs.length,
-                            (index) => InkWell(
+                        (index) => InkWell(
                           onTap: () => setState(() => selectedTab = index),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 14),
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
                             color: selectedTab == index
                                 ? const Color(0xFF1F3D60)
                                 : Colors.transparent,
                             child: Text(
                               tabs[index],
                               style: const TextStyle(
-                                  color: Colors.white, fontSize: 16),
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
                             ),
                           ),
                         ),
@@ -115,13 +119,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => LoginPage()),
+                              builder: (context) => LoginPage(),
+                            ),
                           );
                         },
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14),
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
                           color: const Color(0xFF8B0000),
                           child: const Row(
                             children: [
@@ -142,12 +149,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ),
                 ),
                 // ------------------- MAIN CONTENT ------------------------
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(25),
-                    child: _buildPageContent(),
-                  ),
-                ),
+                Expanded(child: _buildPageContent()),
               ],
             ),
           ),
@@ -160,13 +162,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget _buildPageContent() {
     switch (selectedTab) {
       case 0:
-        return _overviewTab();
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(25),
+          child: _overviewTab(),
+        );
       case 1:
-        return _inventoryTab();
+        return const InventoryManagementPage();
       case 2:
-        return _userManagementTab();
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(25),
+          child: _userManagementTab(),
+        );
       default:
-        return _overviewTab();
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(25),
+          child: _overviewTab(),
+        );
     }
   }
 
@@ -177,16 +188,31 @@ class _AdminDashboardState extends State<AdminDashboard> {
       children: [
         Row(
           children: [
-            _statCard(title: "Total Products", value: "134", icon: Icons.inventory),
-            _statCard(title: "Low Stock", value: "12", icon: Icons.warning_amber_rounded),
-            _statCard(title: "Categories", value: "9", icon: Icons.category_rounded),
+            _statCard(
+              title: "Total Products",
+              value: "134",
+              icon: Icons.inventory,
+            ),
+            _statCard(
+              title: "Low Stock",
+              value: "12",
+              icon: Icons.warning_amber_rounded,
+            ),
+            _statCard(
+              title: "Categories",
+              value: "9",
+              icon: Icons.category_rounded,
+            ),
           ],
         ),
         const SizedBox(height: 30),
         const Text(
           "Recent Activity",
           style: TextStyle(
-              fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
         ),
         const SizedBox(height: 10),
         _activityTile("User John ordered Raspberry Pi 4 (x2)"),
@@ -223,7 +249,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
             Text(
               value,
               style: const TextStyle(
-                  color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold),
+                color: Colors.white,
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             Text(title, style: const TextStyle(color: Colors.white70)),
           ],
@@ -240,10 +269,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8),
         ],
       ),
       child: Row(
@@ -256,54 +282,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  // ============================ INVENTORY TAB =============================
-  Widget _inventoryTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Inventory Overview",
-          style: TextStyle(
-              fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
-        ),
-        const SizedBox(height: 15),
-        _inventoryTile("Arduino Uno", "42 in stock"),
-        _inventoryTile("Raspberry Pi 4", "18 in stock"),
-        _inventoryTile("Breadboard", "60 in stock"),
-        _inventoryTile("Jumper Wires (Set)", "120 in stock"),
-      ],
-    );
-  }
-
-  Widget _inventoryTile(String product, String stock) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.devices, color: Color(0xFF133B7C)),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(product,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-          ),
-          Text(stock,
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0A1A3F))),
-        ],
-      ),
-    );
-  }
-
   // ============================ USER MANAGEMENT TAB =============================
   Widget _userManagementTab() {
     return Column(
@@ -311,7 +289,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
       children: [
         const Text(
           "User Management",
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
         ),
         const SizedBox(height: 15),
         Row(
@@ -323,7 +305,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   hintText: "Enter user email",
                   filled: true,
                   fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -342,40 +327,56 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF133B7C),
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20)),
+                backgroundColor: const Color(0xFF133B7C),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 20,
+                ),
+              ),
               child: const Text("Add User"),
             ),
           ],
         ),
         const SizedBox(height: 20),
-        ...users.map((email) => Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8)],
+        ...users.map(
+          (email) => Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8),
+              ],
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.person, color: Color(0xFF133B7C)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    email,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      users.remove(email);
+                    });
+                  },
+                  child: const Text(
+                    "Remove",
+                    style: TextStyle(color: Colors.redAccent),
+                  ),
+                ),
+              ],
+            ),
           ),
-          child: Row(
-            children: [
-              const Icon(Icons.person, color: Color(0xFF133B7C)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(email,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              ),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    users.remove(email);
-                  });
-                },
-                child: const Text("Remove", style: TextStyle(color: Colors.redAccent)),
-              )
-            ],
-          ),
-        ))
+        ),
       ],
     );
   }
