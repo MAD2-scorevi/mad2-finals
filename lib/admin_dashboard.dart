@@ -3,7 +3,6 @@ import 'login_page.dart';
 import 'inventory_management_page.dart';
 import 'services/activity_service.dart';
 import 'services/inventory_service.dart';
-import 'services/order_service.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -16,7 +15,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
   int selectedTab = 0;
   final ActivityService _activityService = ActivityService();
   final InventoryService _inventoryService = InventoryService();
-  final OrderService _orderService = OrderService();
 
   final List<String> tabs = ["Overview", "Inventory", "User Management"];
 
@@ -195,42 +193,38 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Real-time stats - combined inventory and orders
+        // Real-time inventory stats
         StreamBuilder<List<InventoryItem>>(
           stream: _inventoryService.itemsStream,
-          builder: (context, inventorySnapshot) {
-            final items = inventorySnapshot.data ?? [];
+          builder: (context, snapshot) {
+            final items = snapshot.data ?? [];
             final totalProducts = items.length;
             final lowStock = items
                 .where((item) => item.stockQuantity <= 5)
                 .length;
+            final categories = items
+                .map((item) => item.category)
+                .toSet()
+                .length;
 
-            return StreamBuilder<List<Order>>(
-              stream: _orderService.getAllOrdersStream(),
-              builder: (context, orderSnapshot) {
-                final orders = orderSnapshot.data ?? [];
-                final totalOrders = orders.length;
-
-                return Row(
-                  children: [
-                    _statCard(
-                      title: "Total Products",
-                      value: totalProducts.toString(),
-                      icon: Icons.inventory,
-                    ),
-                    _statCard(
-                      title: "Low Stock",
-                      value: lowStock.toString(),
-                      icon: Icons.warning_amber_rounded,
-                    ),
-                    _statCard(
-                      title: "Total Orders",
-                      value: totalOrders.toString(),
-                      icon: Icons.shopping_bag,
-                    ),
-                  ],
-                );
-              },
+            return Row(
+              children: [
+                _statCard(
+                  title: "Total Products",
+                  value: totalProducts.toString(),
+                  icon: Icons.inventory,
+                ),
+                _statCard(
+                  title: "Low Stock",
+                  value: lowStock.toString(),
+                  icon: Icons.warning_amber_rounded,
+                ),
+                _statCard(
+                  title: "Categories",
+                  value: categories.toString(),
+                  icon: Icons.category_rounded,
+                ),
+              ],
             );
           },
         ),
