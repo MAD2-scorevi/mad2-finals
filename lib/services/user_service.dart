@@ -1,18 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
-class UserManageable{
+class UserManageable {
   final String id;
   final String createdAt;
   final String email;
-  
+  final String fullName;
+  final String phoneNumber;
+  final String address;
+  final String dateOfBirth;
+  final String role;
+  final String status;
+
   UserManageable({
     required this.id,
     required this.createdAt,
     required this.email,
+    required this.fullName,
+    required this.phoneNumber,
+    required this.address,
+    required this.dateOfBirth,
+    required this.role,
+    required this.status,
   });
 
-  factory UserManageable.fromFirestore(DocumentSnapshot doc){
+  factory UserManageable.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
 
     final rawCreatedAt = data['createdAt'];
@@ -29,55 +40,79 @@ class UserManageable{
       throw StateError("Doc ${doc.id} missing field 'email'");
     }
     return UserManageable(
-      id: doc.id, 
+      id: doc.id,
       createdAt: createdAt,
       email: data['email'],
+      fullName: data['fullName'] ?? 'N/A',
+      phoneNumber: data['phoneNumber'] ?? 'N/A',
+      address: data['address'] ?? 'N/A',
+      dateOfBirth: data['dateOfBirth'] ?? 'N/A',
+      role: data['role'] ?? 'user',
+      status: data['status'] ?? 'active',
     );
   }
 }
 
 class UserService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Tested. At least this works
-  Stream<List<UserManageable>> getUsers({int limit = 20}){
+  // Get all regular users (excluding admins, owners, and inactive users)
+  Stream<List<UserManageable>> getUsers({int limit = 20}) {
     return _firestore
-      .collection('users')
-      .orderBy('createdAt', descending: true)
-      .limit(20)
-      .snapshots()
-      .map(
-        (snapshot) => snapshot.docs
-          .map((doc){
-            print(doc.data());
-            return UserManageable.fromFirestore(doc);}
-            )
-          .toList(),
-      );
+        .collection('users')
+        .where('role', isEqualTo: 'user')
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) {
+          final users = snapshot.docs
+              .map((doc) => UserManageable.fromFirestore(doc))
+              .where((user) => user.status != 'inactive')
+              .toList();
+
+          // Sort by createdAt in Dart (descending)
+          users.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return users;
+        });
   }
 
-  // Untested. Research says that if you try to use the following 
-  // it would sign you out and sign you in as the following
-  Future<void> addUser({required String email}) async{
+  // NOTE: Cannot create Firebase Auth users from client app without signing out current user.
+  // Users must register through the normal registration page.
+  // If you need admin-created accounts, implement Firebase Cloud Functions with Admin SDK.
+
+  // Soft delete - marks user as inactive instead of deleting
+  // Cannot delete Firebase Auth user from client (requires Admin SDK)
+  Future<void> deactivateUser({required String id}) async {
     try {
-      await _auth.createUserWithEmailAndPassword(email: email, password: "abcd123");
+      await _firestore.collection('users').doc(id).update({
+        'status': 'inactive',
+        'deactivatedAt': FieldValue.serverTimestamp(),
+      });
     } catch (e) {
-      throw StateError("Error adding user $email: $e");
+      throw StateError("Error deactivating user $id: $e");
     }
   }
 
-  // I don't think you can delete any user, just your self so this might not work? 
-  // Please advise on what to do
-  Future<void> removeUser({required String id})async{
-    // The lines below do nothing so commented but I want you to know I tried.
-      // final user = _auth.currentUser;
-      // if(user == null) return;
+  // Reactivate a deactivated user
+  Future<void> reactivateUser({required String id}) async {
     try {
-      // Untested. Nadedelete lang ata iyung users collection but not the firestore auth users
-      await _firestore.collection('users').doc(id).delete(); //???
+      await _firestore.collection('users').doc(id).update({
+        'status': 'active',
+        'reactivatedAt': FieldValue.serverTimestamp(),
+      });
     } catch (e) {
-      throw StateError("Error deleting $id: $e");
+      throw StateError("Error reactivating user $id: $e");
+    }
+  }
+
+  // Update user profile information
+  Future<void> updateUserProfile({
+    required String id,
+    required Map<String, dynamic> updates,
+  }) async {
+    try {
+      await _firestore.collection('users').doc(id).update(updates);
+    } catch (e) {
+      throw StateError("Error updating user $id: $e");
     }
   }
 }

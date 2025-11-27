@@ -20,12 +20,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   final List<String> tabs = ["Overview", "Inventory", "User Management"];
 
-  List<String> users = [
-    "user1@gmail.com",
-    "user2@gmail.com",
-    "user3@gmail.com",
-  ];
-
   final TextEditingController _userController = TextEditingController();
 
   @override
@@ -435,54 +429,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
             color: Colors.black87,
           ),
         ),
-        const SizedBox(height: 15),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _userController,
-                decoration: InputDecoration(
-                  hintText: "Enter user email",
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            ElevatedButton(
-              onPressed: () {
-                if (_userController.text.isNotEmpty) {
-                  setState(() {
-                    users.add(_userController.text.trim());
-                    _userController.clear();
-                  });
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF133B7C),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 16,
-                  horizontal: 20,
-                ),
-              ),
-              child: const Text("Add User"),
-            ),
-          ],
+        const SizedBox(height: 8),
+        Text(
+          "View and manage regular user accounts. Users must register through the app.",
+          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
         ),
         const SizedBox(height: 20),
 
-        StreamBuilder(
-          stream: _userService.getUsers(limit: 10), 
-          builder: (context, snapshot){
-            if(snapshot.connectionState == ConnectionState.waiting){
+        StreamBuilder<List<UserManageable>>(
+          stream: _userService.getUsers(limit: 50),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
                 child: Padding(
                   padding: EdgeInsets.all(20),
@@ -491,7 +448,29 @@ class _AdminDashboardState extends State<AdminDashboard> {
               );
             }
 
-            if(!snapshot.hasData || snapshot.data!.isEmpty){
+            if (snapshot.hasError) {
+              return Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    'Error loading users: ${snapshot.error}',
+                    style: const TextStyle(fontSize: 16, color: Colors.red),
+                  ),
+                ),
+              );
+            }
+
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -506,7 +485,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
                 child: const Center(
                   child: Text(
-                    'No Users yet',
+                    'No active users found',
                     style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                 ),
@@ -522,16 +501,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 return _userManagementTile(users[index]);
               },
             );
-
-          }
-        )
+          },
+        ),
       ],
     );
   }
 
-  Widget _userManagementTile(UserManageable user){
+  Widget _userManagementTile(UserManageable user) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -545,27 +523,236 @@ class _AdminDashboardState extends State<AdminDashboard> {
           const Icon(Icons.person, color: Color(0xFF133B7C)),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              user.email,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user.email,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (user.fullName != 'N/A')
+                  Text(
+                    user.fullName,
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  ),
+              ],
             ),
           ),
+          IconButton(
+            icon: const Icon(Icons.visibility, color: Color(0xFF133B7C)),
+            tooltip: 'View Details',
+            onPressed: () => _viewUser(user),
+          ),
+          IconButton(
+            icon: const Icon(Icons.edit, color: Colors.orange),
+            tooltip: 'Edit User',
+            onPressed: () => _editUser(user),
+          ),
+          IconButton(
+            icon: const Icon(Icons.person_remove, color: Colors.red),
+            tooltip: 'Deactivate User',
+            onPressed: () => _deactivateUser(user.id, user.email),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _viewUser(UserManageable user) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('User Details'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _detailRow('Full Name', user.fullName),
+              _detailRow('Email', user.email),
+              _detailRow('Phone', user.phoneNumber),
+              _detailRow('Address', user.address),
+              _detailRow('Date of Birth', user.dateOfBirth),
+              _detailRow('Role', user.role),
+              _detailRow('Status', user.status),
+              _detailRow('Joined', user.createdAt),
+            ],
+          ),
+        ),
+        actions: [
           TextButton(
-            onPressed: () {
-              setState(() {
-                // users.remove(email);
-              });
-            },
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editUser(UserManageable user) async {
+    final fullNameController = TextEditingController(text: user.fullName);
+    final phoneController = TextEditingController(text: user.phoneNumber);
+    final addressController = TextEditingController(text: user.address);
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit User'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: fullNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Full Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: addressController,
+                decoration: const InputDecoration(
+                  labelText: 'Address',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF133B7C),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && mounted) {
+      try {
+        await _userService.updateUserProfile(
+          id: user.id,
+          updates: {
+            'fullName': fullNameController.text.trim(),
+            'phoneNumber': phoneController.text.trim(),
+            'address': addressController.text.trim(),
+          },
+        );
+
+        await _activityService.logUserInfoUpdate({
+          'userEmail': user.email,
+          'action': 'User profile updated by admin',
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('User updated successfully')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error updating user: $e')));
+        }
+      }
+    }
+
+    fullNameController.dispose();
+    phoneController.dispose();
+    addressController.dispose();
+  }
+
+  Future<void> _deactivateUser(String userId, String email) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Deactivate User'),
+        content: Text(
+          'Are you sure you want to deactivate $email?\\n\\nThe user will no longer be able to access the system, but their data will be preserved.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
             child: const Text(
-              "Remove",
-              style: TextStyle(color: Colors.redAccent),
+              'Deactivate',
+              style: TextStyle(color: Colors.red),
             ),
           ),
         ],
       ),
     );
+
+    if (confirm == true && mounted) {
+      try {
+        await _userService.deactivateUser(id: userId);
+
+        await _activityService.logUserInfoUpdate({
+          'userEmail': email,
+          'action': 'User deactivated by admin',
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('User $email deactivated successfully')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deactivating user: $e')),
+          );
+        }
+      }
+    }
   }
 }
