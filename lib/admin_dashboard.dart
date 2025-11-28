@@ -57,7 +57,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
     // Clear validation if empty
     if (email.isEmpty) {
-      if (mounted) {
+      if (mounted && (_userEmailError != null || _isCheckingUserEmail)) {
         setState(() {
           _userEmailError = null;
           _isCheckingUserEmail = false;
@@ -69,7 +69,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     // Basic email format validation
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     if (!emailRegex.hasMatch(email)) {
-      if (mounted) {
+      if (mounted && _userEmailError != 'Invalid email format') {
         setState(() {
           _userEmailError = 'Invalid email format';
           _isCheckingUserEmail = false;
@@ -78,15 +78,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
       return;
     }
 
-    // Show loading state immediately
+    // Set checking state immediately when validation will start
     if (mounted) {
       setState(() {
         _isCheckingUserEmail = true;
-        _userEmailError = null;
       });
     }
 
-    // Debounce: wait 500ms before checking
+    // Debounce: wait 500ms before checking Firebase
     _debounceUserTimer = Timer(const Duration(milliseconds: 500), () async {
       if (!mounted) return;
 
@@ -125,10 +124,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
           });
         } else {
           print('✅ Admin: Email available: $email');
-          setState(() {
-            _isCheckingUserEmail = false;
-            _userEmailError = null;
-          });
+          // Don't update UI for success - just clear error if exists
+          if (_userEmailError != null || _isCheckingUserEmail) {
+            setState(() {
+              _isCheckingUserEmail = false;
+              _userEmailError = null;
+            });
+          }
         }
       } on FirebaseAuthException catch (e) {
         print('⚠️ Admin Firebase Auth error: ${e.code} - ${e.message}');
@@ -730,6 +732,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   : _addUser,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF133B7C),
+                foregroundColor: Colors.white,
                 disabledBackgroundColor: Colors.grey.shade400,
                 padding: const EdgeInsets.symmetric(
                   vertical: 16,

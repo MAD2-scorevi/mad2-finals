@@ -67,15 +67,14 @@ class _RegistrationPageState extends State<RegistrationPage> {
       return;
     }
 
-    // Show loading state immediately
+    // Set checking state immediately when validation will start
     if (mounted) {
       setState(() {
         _isCheckingEmail = true;
-        _emailError = null;
       });
     }
 
-    // Debounce: wait 500ms before checking
+    // Debounce: wait 500ms before checking Firebase
     _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
       if (!mounted) return;
 
@@ -119,10 +118,13 @@ class _RegistrationPageState extends State<RegistrationPage> {
           });
         } else {
           print('✅ Email available: $email');
-          setState(() {
-            _isCheckingEmail = false;
-            _emailError = null;
-          });
+          // Don't update UI for success - just clear error if exists
+          if (_emailError != null || _isCheckingEmail) {
+            setState(() {
+              _isCheckingEmail = false;
+              _emailError = null;
+            });
+          }
         }
       } on FirebaseAuthException catch (e) {
         print('⚠️ Firebase Auth error: ${e.code} - ${e.message}');
