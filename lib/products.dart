@@ -5,6 +5,7 @@ import 'login_page.dart'; // Import login_page.dart to handle logout navigation
 import 'services/inventory_service.dart';
 import 'services/order_service.dart';
 import 'services/activity_service.dart';
+import 'services/firebase_auth_service.dart';
 import 'order_history_page.dart';
 
 class ProductsPage extends StatefulWidget {
@@ -18,6 +19,7 @@ class _ProductsPageState extends State<ProductsPage> {
   final InventoryService _inventoryService = InventoryService();
   final OrderService _orderService = OrderService();
   final ActivityService _activityService = ActivityService();
+  final FirebaseAuthService _authService = FirebaseAuthService();
   bool _isLoading = true;
   final Map<String, int> _cartQuantities =
       {}; // Track cart quantities by product ID
@@ -246,8 +248,22 @@ class _ProductsPageState extends State<ProductsPage> {
             ),
             ListTile(
               leading: const Icon(
+                Icons.delete_forever,
+                color: Colors.red, // Red color for Delete Account icon
+              ),
+              title: const Text(
+                'Delete My Account',
+                style: TextStyle(color: Colors.red),
+              ),
+              onTap: () {
+                Navigator.pop(context); // Close the bottom sheet
+                _showDeleteAccountDialog(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(
                 Icons.logout,
-                color: Colors.red, // Custom color for Logout icon (red)
+                color: Color(0xFF0F3360), // Custom color for Logout icon
               ),
               title: const Text('Log Out'),
               onTap: () async {
@@ -259,6 +275,110 @@ class _ProductsPageState extends State<ProductsPage> {
                   );
                 }
               },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    final TextEditingController passwordController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text(
+            'Delete Account',
+            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'This action is permanent and cannot be undone. All your data will be deleted.',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              const Text('Please enter your password to confirm:'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  hintText: 'Password',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                passwordController.dispose();
+                Navigator.pop(context);
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                final password = passwordController.text.trim();
+                final dialogContext = context;
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+                final navigator = Navigator.of(context);
+
+                if (password.isEmpty) {
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(content: Text('Please enter your password')),
+                  );
+                  return;
+                }
+
+                navigator.pop(); // Close dialog
+
+                // Show loading
+                showDialog(
+                  context: dialogContext,
+                  barrierDismissible: false,
+                  builder: (context) =>
+                      const Center(child: CircularProgressIndicator()),
+                );
+
+                final result = await _authService.deleteMyAccount(password);
+
+                if (!mounted) return;
+                navigator.pop(); // Close loading
+
+                if (result['success']) {
+                  // Navigate to login page
+                  navigator.pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const LoginPage()),
+                    (route) => false,
+                  );
+                } else {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        result['message'] ?? 'Failed to delete account',
+                      ),
+                    ),
+                  );
+                }
+                passwordController.dispose();
+              },
+              child: const Text('Delete Account'),
             ),
           ],
         );

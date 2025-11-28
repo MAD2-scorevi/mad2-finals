@@ -48,8 +48,9 @@ service cloud.firestore {
       // Admins can also create users
       allow create: if isAuthenticated() && (request.auth.uid == userId || isAdmin() || isOwner());
 
-      // Admins and Owners can delete users (but soft delete is preferred)
-      allow delete: if isAdmin() || isOwner();
+      // Users can delete their own account (self-delete)
+      // Admins and Owners can also delete users (but soft delete is preferred)
+      allow delete: if (isAuthenticated() && request.auth.uid == userId) || isAdmin() || isOwner();
     }
 
     // Products collection

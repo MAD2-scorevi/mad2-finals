@@ -146,6 +146,115 @@ class FirebaseAuthService {
     }
   }
 
+  // Delete current user's account (self-delete)
+  // Only the logged-in user can delete their own account
+  Future<Map<String, dynamic>> deleteMyAccount(String password) async {
+    try {
+      print('DELETE ACCOUNT: Starting account deletion');
+      final user = _auth.currentUser;
+      if (user == null) {
+        print('DELETE ACCOUNT ERROR: No user signed in');
+        return {'success': false, 'message': 'No user is currently signed in'};
+      }
+
+      final userEmail = user.email!;
+      final userId = user.uid;
+      print('DELETE ACCOUNT: User found: $userEmail (UID: $userId)');
+
+      // Re-authenticate is REQUIRED for user.delete() to work
+      // Try with a timeout, but if it fails, use alternative approach
+      print(
+        'DELETE ACCOUNT: Re-authenticating user (required for Auth deletion)...',
+      );
+      bool reauthSuccess = false;
+
+      try {
+        final credential = EmailAuthProvider.credential(
+          email: userEmail,
+          password: password,
+        );
+        await user
+            .reauthenticateWithCredential(credential)
+            .timeout(const Duration(seconds: 5));
+        print('DELETE ACCOUNT: Re-authentication successful');
+        reauthSuccess = true;
+      } catch (e) {
+        print('DELETE ACCOUNT: Re-auth failed or timed out: $e');
+        // Will try alternative approach below
+      }
+
+      // If re-auth failed, try signing in fresh to get a new authenticated session
+      if (!reauthSuccess) {
+        print('DELETE ACCOUNT: Attempting fresh sign-in for authentication...');
+        try {
+          await _auth.signInWithEmailAndPassword(
+            email: userEmail,
+            password: password,
+          );
+          print('DELETE ACCOUNT: Fresh sign-in successful');
+        } catch (e) {
+          print(
+            'DELETE ACCOUNT ERROR: Could not authenticate with provided password',
+          );
+          return {
+            'success': false,
+            'message': 'Invalid password. Please try again.',
+          };
+        }
+      }
+
+      // Get the current user again (in case we re-signed in)
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        print('DELETE ACCOUNT ERROR: User session lost');
+        return {
+          'success': false,
+          'message': 'User session lost. Please try again.',
+        };
+      }
+
+      // Delete Firestore user document FIRST (while user is still authenticated)
+      print('DELETE ACCOUNT: Deleting Firestore document for UID: $userId...');
+      try {
+        await _firestore.collection('users').doc(userId).delete();
+        print('DELETE ACCOUNT: Firestore document deleted');
+      } catch (e) {
+        print('DELETE ACCOUNT ERROR: Failed to delete Firestore document: $e');
+        return {'success': false, 'message': 'Failed to delete user data: $e'};
+      }
+
+      // Delete Firebase Auth account LAST (after Firestore is cleaned up)
+      print(
+        'DELETE ACCOUNT: Deleting Firebase Auth account for UID: ${currentUser.uid}...',
+      );
+      try {
+        await currentUser.delete();
+        print('DELETE ACCOUNT: Firebase Auth account deleted successfully');
+      } catch (e) {
+        print(
+          'DELETE ACCOUNT ERROR: Firestore deleted but Auth deletion failed: $e',
+        );
+        return {
+          'success': false,
+          'message':
+              'User data deleted but authentication account could not be removed. Please contact support.',
+        };
+      }
+
+      print('DELETE ACCOUNT: Account deletion completed successfully');
+      return {'success': true, 'message': 'Account deleted successfully'};
+    } on FirebaseAuthException catch (e) {
+      print(
+        'DELETE ACCOUNT ERROR: FirebaseAuthException - ${e.code}: ${e.message}',
+      );
+      return {'success': false, 'message': _getErrorMessage(e.code)};
+    } catch (e, stackTrace) {
+      print('DELETE ACCOUNT ERROR: $e');
+      print('Stack trace: $stackTrace');
+      return {'success': false, 'message': 'Failed to delete account: $e'};
+    }
+  }
+
   // Helper method to get user-friendly error messages
   String _getErrorMessage(String code) {
     switch (code) {
