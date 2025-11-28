@@ -33,6 +33,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
   void dispose() {
     _debounceTimer?.cancel();
     emailController.removeListener(_validateEmail);
+    fullNameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    phoneController.dispose();
+    addressController.dispose();
+    dobController.dispose();
     super.dispose();
   }
 
@@ -437,9 +443,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     // Register with Firebase
     final result = await _authService.signUp(
@@ -452,9 +460,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
       role: 'user', // Default role for new registrations
     );
 
-    setState(() {
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
 
     if (result['success']) {
       _showSnackBar('Account created successfully!');

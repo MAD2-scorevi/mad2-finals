@@ -1074,8 +1074,13 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
                 final success = await _inventoryService.addItem(newItem);
                 if (!mounted) return;
                 if (success) {
-                  // Log activity
-                  await _activityService.logInventoryAdded(newItem.name);
+                  // Log activity with details
+                  await _activityService.logInventoryAdded(
+                    newItem.name,
+                    quantity: newItem.stockQuantity,
+                    category: newItem.category,
+                    price: newItem.price,
+                  );
 
                   Navigator.pop(context);
                   setState(() {});
@@ -1257,9 +1262,21 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
                   navigator.pop();
 
                   if (success) {
+                    // Build changes map for activity log
+                    final changes = <String, dynamic>{};
+                    if (updatedItem.stockQuantity != item.stockQuantity) {
+                      changes['stockQuantity'] = updatedItem.stockQuantity;
+                    }
+                    if (updatedItem.price != item.price) {
+                      changes['price'] = updatedItem.price;
+                    }
+                    if (updatedItem.category != item.category) {
+                      changes['category'] = updatedItem.category;
+                    }
+
                     await _activityService.logInventoryUpdated(
                       updatedItem.name,
-                      {'action': 'Updated product details'},
+                      changes.isNotEmpty ? changes : {'action': 'details'},
                     );
 
                     messenger.showSnackBar(

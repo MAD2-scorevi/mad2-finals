@@ -156,7 +156,27 @@ class ActivityService {
   }
 
   Future<void> logLogin() async {
-    await logActivity(activityType: LOGIN, description: 'User logged in');
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      final userData = userDoc.data();
+      final role = userData?['role'] ?? 'user';
+      final roleLabel = role == 'admin'
+          ? 'Admin'
+          : role == 'owner'
+          ? 'Owner'
+          : 'User';
+
+      await logActivity(
+        activityType: LOGIN,
+        description: 'Logged in as $roleLabel',
+        metadata: {'role': role},
+      );
+    } catch (e) {
+      await logActivity(activityType: LOGIN, description: 'Logged in');
+    }
   }
 
   Future<void> logLogout() async {
@@ -171,19 +191,54 @@ class ActivityService {
     );
   }
 
-  Future<void> logUserInfoUpdate(Map<String, dynamic> changes) async {
+  Future<void> logUserInfoUpdate(
+    Map<String, dynamic> changes, {
+    String? targetUser,
+  }) async {
+    final changesList = <String>[];
+
+    if (changes.containsKey('fullName')) changesList.add('name');
+    if (changes.containsKey('phoneNumber')) changesList.add('phone');
+    if (changes.containsKey('address')) changesList.add('address');
+    if (changes.containsKey('role')) changesList.add('role→${changes['role']}');
+    if (changes.containsKey('isActive')) {
+      changesList.add(changes['isActive'] ? 'activated' : 'deactivated');
+    }
+
+    final changesStr = changesList.isNotEmpty
+        ? ': ${changesList.join(', ')}'
+        : '';
+    final targetStr = targetUser != null ? ' for $targetUser' : '';
+
     await logActivity(
       activityType: USER_INFO_UPDATED,
-      description: 'User information updated',
-      metadata: changes,
+      description: 'Updated user$targetStr$changesStr',
+      metadata: {...changes, if (targetUser != null) 'targetUser': targetUser},
     );
   }
 
-  Future<void> logInventoryAdded(String itemName) async {
+  Future<void> logInventoryAdded(
+    String itemName, {
+    int? quantity,
+    String? category,
+    double? price,
+  }) async {
+    final details = <String>[];
+    if (quantity != null) details.add('Qty: $quantity');
+    if (category != null) details.add(category);
+    if (price != null) details.add('₱${price.toStringAsFixed(2)}');
+
+    final detailsStr = details.isNotEmpty ? ' (${details.join(', ')})' : '';
+
     await logActivity(
       activityType: INVENTORY_ADDED,
-      description: 'Added new item: $itemName',
-      metadata: {'itemName': itemName},
+      description: 'Added "$itemName"$detailsStr',
+      metadata: {
+        'itemName': itemName,
+        if (quantity != null) 'quantity': quantity,
+        if (category != null) 'category': category,
+        if (price != null) 'price': price,
+      },
     );
   }
 
@@ -191,9 +246,30 @@ class ActivityService {
     String itemName,
     Map<String, dynamic> changes,
   ) async {
+    final changesList = <String>[];
+
+    if (changes.containsKey('stockQuantity')) {
+      final newQty = changes['stockQuantity'];
+      changesList.add('stock→$newQty');
+    }
+    if (changes.containsKey('price')) {
+      final newPrice = changes['price'];
+      changesList.add('price→₱${newPrice.toStringAsFixed(2)}');
+    }
+    if (changes.containsKey('category')) {
+      changesList.add('cat→${changes['category']}');
+    }
+    if (changes.containsKey('status')) {
+      changesList.add(changes['status']);
+    }
+
+    final changesStr = changesList.isNotEmpty
+        ? ': ${changesList.join(', ')}'
+        : '';
+
     await logActivity(
       activityType: INVENTORY_UPDATED,
-      description: 'Updated item: $itemName',
+      description: 'Updated "$itemName"$changesStr',
       metadata: {'itemName': itemName, 'changes': changes},
     );
   }
@@ -206,11 +282,23 @@ class ActivityService {
     );
   }
 
-  Future<void> logOrderPlaced(String orderId, int itemCount) async {
+  Future<void> logOrderPlaced(
+    String orderId,
+    int itemCount, {
+    double? total,
+  }) async {
+    final totalStr = total != null ? ', ₱${total.toStringAsFixed(2)}' : '';
+    final itemStr = itemCount == 1 ? 'item' : 'items';
+
     await logActivity(
       activityType: ORDER_PLACED,
-      description: 'Placed order with $itemCount item(s)',
-      metadata: {'orderId': orderId, 'itemCount': itemCount},
+      description:
+          'Order #${orderId.substring(0, 8).toUpperCase()}: $itemCount $itemStr$totalStr',
+      metadata: {
+        'orderId': orderId,
+        'itemCount': itemCount,
+        if (total != null) 'total': total,
+      },
     );
   }
 
@@ -222,19 +310,21 @@ class ActivityService {
     );
   }
 
-  Future<void> logAdminPromoted(String email) async {
+  Future<void> logAdminPromoted(String email, {String? userName}) async {
+    final userStr = userName ?? email.split('@')[0];
     await logActivity(
       activityType: ADMIN_PROMOTED,
-      description: 'Promoted $email to admin',
-      metadata: {'email': email},
+      description: 'Promoted $userStr to Admin',
+      metadata: {'email': email, if (userName != null) 'userName': userName},
     );
   }
 
-  Future<void> logAdminDemoted(String email) async {
+  Future<void> logAdminDemoted(String email, {String? userName}) async {
+    final userStr = userName ?? email.split('@')[0];
     await logActivity(
       activityType: ADMIN_DEMOTED,
-      description: 'Removed admin access from $email',
-      metadata: {'email': email},
+      description: 'Demoted $userStr from Admin',
+      metadata: {'email': email, if (userName != null) 'userName': userName},
     );
   }
 }

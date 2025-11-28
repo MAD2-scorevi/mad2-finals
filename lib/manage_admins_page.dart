@@ -23,27 +23,29 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
   }
 
   Future<void> _loadAdmins() async {
-    setState(() => _isLoading = true);
+    if (mounted) setState(() => _isLoading = true);
     try {
       final querySnapshot = await _firestore
           .collection('users')
           .where('role', isEqualTo: 'admin')
           .get();
 
-      setState(() {
-        admins = querySnapshot.docs.map((doc) {
-          final data = doc.data();
-          return {
-            'id': doc.id,
-            'email': data['email'] ?? '',
-            'fullName': data['fullName'] ?? 'N/A',
-          };
-        }).toList();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          admins = querySnapshot.docs.map((doc) {
+            final data = doc.data();
+            return {
+              'id': doc.id,
+              'email': data['email'] ?? '',
+              'fullName': data['fullName'] ?? 'N/A',
+            };
+          }).toList();
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       print('Error loading admins: \$e');
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -380,7 +382,10 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
       });
 
       // Log activity
-      await _activityService.logAdminPromoted(email);
+      await _activityService.logAdminPromoted(
+        email,
+        userName: userData['fullName'],
+      );
 
       emailController.clear();
       _loadAdmins();
@@ -552,9 +557,10 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
 
           // Log activity
           await _activityService.logUserInfoUpdate({
-            'userEmail': admin['email'],
-            'action': 'Admin profile updated',
-          });
+            'fullName': fullNameController.text.trim(),
+            'phoneNumber': phoneController.text.trim(),
+            'address': addressController.text.trim(),
+          }, targetUser: admin['email']);
 
           _loadAdmins();
 
@@ -604,7 +610,9 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
         });
 
         // Log activity
-        await _activityService.logAdminDemoted(email);
+        final userDoc = await _firestore.collection('users').doc(userId).get();
+        final userName = userDoc.data()?['fullName'];
+        await _activityService.logAdminDemoted(email, userName: userName);
 
         _loadAdmins(); // Reload the list
         if (mounted) {

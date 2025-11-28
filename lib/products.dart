@@ -42,25 +42,25 @@ class _ProductsPageState extends State<ProductsPage> {
           final data = userDoc.data();
           final fullName = data?['fullName'] as String?;
           if (fullName != null && fullName.isNotEmpty) {
-            setState(() => _displayName = fullName);
+            if (mounted) setState(() => _displayName = fullName);
             return;
           }
         }
         // Fallback to email without domain
         final email = user.email ?? 'User';
-        setState(() => _displayName = email.split('@')[0]);
+        if (mounted) setState(() => _displayName = email.split('@')[0]);
       } catch (e) {
         // Fallback to email without domain
         final email = user.email ?? 'User';
-        setState(() => _displayName = email.split('@')[0]);
+        if (mounted) setState(() => _displayName = email.split('@')[0]);
       }
     }
   }
 
   Future<void> _loadProducts() async {
-    setState(() => _isLoading = true);
+    if (mounted) setState(() => _isLoading = true);
     await _inventoryService.loadItems();
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -609,10 +609,15 @@ class _ProductsPageState extends State<ProductsPage> {
         print('Update result for ${inventoryItem.name}: $success');
       }
 
-      // Log activity
-      await _activityService.logActivity(
-        activityType: ActivityService.ORDER_PLACED,
-        description: 'Order placed with ${orderItems.length} product(s)',
+      // Log activity with order details
+      final totalAmount = orderItems.fold<double>(
+        0,
+        (sum, item) => sum + (item.price * item.quantity),
+      );
+      await _activityService.logOrderPlaced(
+        orderId,
+        orderItems.length,
+        total: totalAmount,
       );
     }
 
@@ -623,9 +628,11 @@ class _ProductsPageState extends State<ProductsPage> {
 
     if (orderId != null) {
       // Clear cart
-      setState(() {
-        _cartQuantities.clear();
-      });
+      if (mounted) {
+        setState(() {
+          _cartQuantities.clear();
+        });
+      }
 
       // Reload products to update stock
       await _loadProducts();

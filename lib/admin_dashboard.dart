@@ -1048,9 +1048,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
         );
 
         await _activityService.logUserInfoUpdate({
-          'userEmail': user.email,
-          'action': 'User profile updated by admin',
-        });
+          'fullName': fullNameController.text.trim(),
+          'phoneNumber': phoneController.text.trim(),
+          'address': addressController.text.trim(),
+        }, targetUser: user.email);
 
         if (mounted) {
           _refreshUserStream(); // Refresh the stream
@@ -1237,9 +1238,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
       // Log activity
       await _activityService.logUserInfoUpdate({
-        'userEmail': email,
-        'action': 'User created with Firebase Auth',
-      });
+        'role': 'user',
+      }, targetUser: email);
 
       _userController.clear();
 
@@ -1307,9 +1307,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
         );
 
         await _activityService.logUserInfoUpdate({
-          'userEmail': email,
-          'action': 'User deactivated by admin',
-        });
+          'isActive': false,
+        }, targetUser: email);
 
         if (mounted) {
           _refreshUserStream(); // Refresh the stream

@@ -45,16 +45,20 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     // Firebase Authentication with role-based access
     final result = await _authService.signIn(email, password);
 
-    setState(() {
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
 
     if (result['success']) {
       final userData = result['userData'] as Map<String, dynamic>;
@@ -62,6 +66,8 @@ class _LoginPageState extends State<LoginPage> {
 
       // Log login activity
       await _activityService.logLogin();
+
+      if (!mounted) return;
 
       // Navigate based on role
       if (role == 'admin') {
