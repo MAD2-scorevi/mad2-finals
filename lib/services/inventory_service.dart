@@ -389,10 +389,17 @@ class InventoryService extends ChangeNotifier {
   /// Update an existing inventory item
   Future<bool> updateItem(String id, InventoryItem updatedItem) async {
     try {
-      final index = _items.indexWhere((item) => item.id == id);
+      print('UPDATE: Attempting to update item with id: $id');
 
-      if (index == -1) {
-        debugPrint('Item with ID $id not found');
+      // Check if the document exists in Firestore
+      final docSnapshot = await _firestore
+          .collection(_collectionName)
+          .doc(id)
+          .get();
+
+      if (!docSnapshot.exists) {
+        debugPrint('Item with ID $id not found in Firestore');
+        print('ERROR: Document does not exist in Firestore! ID: $id');
         return false;
       }
 
@@ -401,19 +408,26 @@ class InventoryService extends ChangeNotifier {
         lastUpdated: DateTime.now(),
       );
 
-      // Update in Firestore
+      // Update in Firestore using set with merge
+      final updateData = itemToUpdate.toJson();
+      updateData.remove('id'); // Remove id field for Firestore
+
       await _firestore
           .collection(_collectionName)
           .doc(id)
-          .update(itemToUpdate.toJson());
+          .set(updateData, SetOptions(merge: true));
 
-      // Update local list
-      _items[index] = itemToUpdate;
-      notifyListeners();
-      debugPrint('Updated item: ${updatedItem.name}');
+      debugPrint('✓ Successfully updated item: ${updatedItem.name}');
+      print('SUCCESS: Item updated in Firestore with ID: $id');
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Error updating item: $e');
+      debugPrint('Stack trace: $stackTrace');
+      print('FIRESTORE UPDATE ERROR: $e');
+      print('Error details: ${e.toString()}');
+      if (e.toString().contains('FirebaseException')) {
+        print('Firebase error code: ${e.toString()}');
+      }
       return false;
     }
   }
@@ -421,23 +435,36 @@ class InventoryService extends ChangeNotifier {
   /// Remove an inventory item
   Future<bool> removeItem(String id) async {
     try {
-      final index = _items.indexWhere((item) => item.id == id);
+      print('DELETE: Attempting to delete item with id: $id');
 
-      if (index == -1) {
-        debugPrint('Item with ID $id not found');
+      // Check if the document exists in Firestore
+      final docSnapshot = await _firestore
+          .collection(_collectionName)
+          .doc(id)
+          .get();
+
+      if (!docSnapshot.exists) {
+        debugPrint('Item with ID $id not found in Firestore');
+        print('ERROR: Document does not exist in Firestore! ID: $id');
         return false;
       }
+
+      final itemName = docSnapshot.data()?['name'] ?? 'Unknown';
 
       // Delete from Firestore
       await _firestore.collection(_collectionName).doc(id).delete();
 
-      // Remove from local list
-      final removedItem = _items.removeAt(index);
-      notifyListeners();
-      debugPrint('Removed item: ${removedItem.name}');
+      debugPrint('✓ Successfully deleted item: $itemName');
+      print('SUCCESS: Item deleted from Firestore with ID: $id');
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Error removing item: $e');
+      debugPrint('Stack trace: $stackTrace');
+      print('FIRESTORE DELETE ERROR: $e');
+      print('Error details: ${e.toString()}');
+      if (e.toString().contains('FirebaseException')) {
+        print('Firebase error code: ${e.toString()}');
+      }
       return false;
     }
   }

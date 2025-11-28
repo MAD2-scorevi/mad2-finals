@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_page.dart'; // Import login_page.dart to handle logout navigation
 import 'services/inventory_service.dart';
 import 'services/order_service.dart';
@@ -19,11 +21,40 @@ class _ProductsPageState extends State<ProductsPage> {
   bool _isLoading = true;
   final Map<String, int> _cartQuantities =
       {}; // Track cart quantities by product ID
+  String _displayName = 'User';
 
   @override
   void initState() {
     super.initState();
     _loadProducts();
+    _loadUserInfo();
+  }
+
+  Future<void> _loadUserInfo() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        if (userDoc.exists) {
+          final data = userDoc.data();
+          final fullName = data?['fullName'] as String?;
+          if (fullName != null && fullName.isNotEmpty) {
+            setState(() => _displayName = fullName);
+            return;
+          }
+        }
+        // Fallback to email without domain
+        final email = user.email ?? 'User';
+        setState(() => _displayName = email.split('@')[0]);
+      } catch (e) {
+        // Fallback to email without domain
+        final email = user.email ?? 'User';
+        setState(() => _displayName = email.split('@')[0]);
+      }
+    }
   }
 
   Future<void> _loadProducts() async {
@@ -45,9 +76,9 @@ class _ProductsPageState extends State<ProductsPage> {
         automaticallyImplyLeading:
             false, // To remove the back button in the AppBar
         elevation: 0, // Removes the shadow below the AppBar
-        title: const Text(
-          "Hi, User!", // Title of the AppBar
-          style: TextStyle(
+        title: Text(
+          "Hi, $_displayName!", // Title of the AppBar
+          style: const TextStyle(
             color: Colors.white, // Title color (white)
             fontWeight: FontWeight.bold,
           ),
@@ -272,177 +303,192 @@ class _ProductsPageState extends State<ProductsPage> {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // PRODUCT NAME
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 400;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  item.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              // Stock status badge
-              if (isOutOfStock)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'Out of Stock',
-                    style: TextStyle(
-                      color: Colors.red.shade700,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+              // PRODUCT NAME
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      item.name,
+                      style: TextStyle(
+                        fontSize: isMobile ? 14 : 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                )
-              else if (isLowStock)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'Low Stock',
-                    style: TextStyle(
-                      color: Colors.orange.shade700,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                  // Stock status badge
+                  if (isOutOfStock)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Out of Stock',
+                        style: TextStyle(
+                          color: Colors.red.shade700,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                  else if (isLowStock)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Low Stock',
+                        style: TextStyle(
+                          color: Colors.orange.shade700,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-            ],
-          ),
-
-          const SizedBox(height: 4),
-
-          // PRICE
-          Text(
-            item.formattedPrice,
-            style: const TextStyle(fontSize: 15, color: Colors.black87),
-          ),
-
-          const SizedBox(height: 6),
-
-          // CATEGORY TAG & STOCK INFO
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE6F0FF),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  item.category,
-                  style: const TextStyle(
-                    color: Color(0xFF0F3360),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              if (!isOutOfStock)
-                Text(
-                  '${item.stockQuantity} in stock',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // ---------------- QUANTITY CONTROLS ----------------
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              // MINUS BUTTON
-              InkWell(
-                onTap: isOutOfStock
-                    ? null
-                    : () {
-                        setState(() {
-                          if (cartQty > 0) {
-                            _cartQuantities[item.id] = cartQty - 1;
-                          }
-                        });
-                      },
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: isOutOfStock ? Colors.grey.shade300 : Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.remove,
-                    color: isOutOfStock ? Colors.grey.shade500 : Colors.white,
-                  ),
-                ),
+                ],
               ),
 
-              const SizedBox(width: 16),
+              const SizedBox(height: 4),
 
-              // QUANTITY NUMBER
+              // PRICE
               Text(
-                cartQty.toString(),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                item.formattedPrice,
+                style: TextStyle(
+                  fontSize: isMobile ? 14 : 15,
+                  color: Colors.black87,
                 ),
               ),
 
-              const SizedBox(width: 16),
+              const SizedBox(height: 6),
 
-              // PLUS BUTTON
-              InkWell(
-                onTap: isOutOfStock || cartQty >= item.stockQuantity
-                    ? null
-                    : () {
-                        setState(() {
-                          _cartQuantities[item.id] = cartQty + 1;
-                        });
-                      },
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: isOutOfStock || cartQty >= item.stockQuantity
-                        ? Colors.grey.shade300
-                        : const Color(0xFF0F3360),
-                    shape: BoxShape.circle,
+              // CATEGORY TAG & STOCK INFO
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE6F0FF),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      item.category,
+                      style: const TextStyle(
+                        color: Color(0xFF0F3360),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
-                  child: Icon(
-                    Icons.add,
-                    color: isOutOfStock || cartQty >= item.stockQuantity
-                        ? Colors.grey.shade500
-                        : Colors.white,
+                  const SizedBox(width: 8),
+                  if (!isOutOfStock)
+                    Text(
+                      '${item.stockQuantity} in stock',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // ---------------- QUANTITY CONTROLS ----------------
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  // MINUS BUTTON
+                  InkWell(
+                    onTap: isOutOfStock
+                        ? null
+                        : () {
+                            setState(() {
+                              if (cartQty > 0) {
+                                _cartQuantities[item.id] = cartQty - 1;
+                              }
+                            });
+                          },
+                    child: Container(
+                      width: isMobile ? 32 : 36,
+                      height: isMobile ? 32 : 36,
+                      decoration: BoxDecoration(
+                        color: isOutOfStock ? Colors.grey.shade300 : Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.remove,
+                        color: isOutOfStock
+                            ? Colors.grey.shade500
+                            : Colors.white,
+                        size: isMobile ? 18 : 24,
+                      ),
+                    ),
                   ),
-                ),
+
+                  SizedBox(width: isMobile ? 12 : 16),
+
+                  // QUANTITY NUMBER
+                  Text(
+                    cartQty.toString(),
+                    style: TextStyle(
+                      fontSize: isMobile ? 16 : 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  SizedBox(width: isMobile ? 12 : 16),
+
+                  // PLUS BUTTON
+                  InkWell(
+                    onTap: isOutOfStock || cartQty >= item.stockQuantity
+                        ? null
+                        : () {
+                            setState(() {
+                              _cartQuantities[item.id] = cartQty + 1;
+                            });
+                          },
+                    child: Container(
+                      width: isMobile ? 32 : 36,
+                      height: isMobile ? 32 : 36,
+                      decoration: BoxDecoration(
+                        color: isOutOfStock || cartQty >= item.stockQuantity
+                            ? Colors.grey.shade300
+                            : const Color(0xFF0F3360),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.add,
+                        color: isOutOfStock || cartQty >= item.stockQuantity
+                            ? Colors.grey.shade500
+                            : Colors.white,
+                        size: isMobile ? 18 : 24,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }

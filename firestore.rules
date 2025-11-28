@@ -32,8 +32,8 @@ service cloud.firestore {
       // Users can read their own data
       allow read: if isAuthenticated() && request.auth.uid == userId;
 
-      // Admins and Owners can read all users
-      allow read: if isAdmin() || isOwner();
+      // Admins and Owners can read all users (both get and list operations)
+      allow read, list: if isAdmin() || isOwner();
 
       // Users can update their own data (except role, uid, and status)
       allow update: if isAuthenticated() && request.auth.uid == userId
@@ -45,7 +45,8 @@ service cloud.firestore {
                     && !(resource.data.role == 'owner' || request.resource.data.role == 'owner');
 
       // Only system can create users (through Firebase Auth registration)
-      allow create: if isAuthenticated() && request.auth.uid == userId;
+      // Admins can also create users
+      allow create: if isAuthenticated() && (request.auth.uid == userId || isAdmin() || isOwner());
 
       // Admins and Owners can delete users (but soft delete is preferred)
       allow delete: if isAdmin() || isOwner();

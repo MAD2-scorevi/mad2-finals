@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class UserManageable {
   final String id;
@@ -55,6 +57,7 @@ class UserManageable {
 
 class UserService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Get all regular users (excluding admins, owners, and inactive users)
   Stream<List<UserManageable>> getUsers({int limit = 20}) {
@@ -75,19 +78,142 @@ class UserService {
         });
   }
 
-  // NOTE: Cannot create Firebase Auth users from client app without signing out current user.
-  // Users must register through the normal registration page.
-  // If you need admin-created accounts, implement Firebase Cloud Functions with Admin SDK.
-
-  // Soft delete - marks user as inactive instead of deleting
-  // Cannot delete Firebase Auth user from client (requires Admin SDK)
-  Future<void> deactivateUser({required String id}) async {
+  // Add a new user - creates Firebase Auth account AND Firestore document
+  // Note: Creates user while keeping admin session active
+  // Default password: "Welcome123!" - user should change on first login
+  Future<String> addUser({
+    required String email,
+    required String adminEmail,
+    required String adminPassword,
+    String fullName = '',
+    String phoneNumber = '',
+    String address = '',
+    String password = 'Welcome123!',
+  }) async {
     try {
+      print('ADD USER: Creating Firebase Auth account for $email');
+
+      // Store current admin user
+      final currentAdmin = _auth.currentUser;
+      if (currentAdmin == null) {
+        throw StateError('No admin is currently signed in');
+      }
+
+      print('ADD USER: Current admin: ${currentAdmin.email}');
+
+      // Create Firebase Auth user (this will temporarily switch the auth context)
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final newUserId = userCredential.user!.uid;
+      print('ADD USER: Created user with UID: $newUserId');
+
+      // Create Firestore document with the Auth UID
+      await _firestore.collection('users').doc(newUserId).set({
+        'email': email,
+        'fullName': fullName,
+        'phoneNumber': phoneNumber,
+        'address': address,
+        'role': 'user',
+        'status': 'active',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      print('ADD USER: Created Firestore document');
+
+      // Sign out the newly created user
+      await _auth.signOut();
+      print('ADD USER: Signed out new user');
+
+      // Re-authenticate as admin
+      print('ADD USER: Re-authenticating admin ${adminEmail}');
+      await _auth.signInWithEmailAndPassword(
+        email: adminEmail,
+        password: adminPassword,
+      );
+      print('ADD USER: Admin re-authenticated successfully');
+
+      return newUserId;
+    } catch (e) {
+      print('ADD USER ERROR: $e');
+      // Try to sign out and re-auth admin in case of error
+      try {
+        await _auth.signOut();
+        await _auth.signInWithEmailAndPassword(
+          email: adminEmail,
+          password: adminPassword,
+        );
+        print('ADD USER: Admin re-authenticated after error');
+      } catch (authError) {
+        print(
+          'ADD USER: Failed to re-authenticate admin after error: $authError',
+        );
+      }
+      throw StateError("Error adding user $email: $e");
+    }
+  }
+
+  // Deactivate user - marks Firestore as inactive
+  // Note: Firebase Auth accounts cannot be deleted without Admin SDK
+  // The account remains in Firebase Auth but cannot access the system
+  // because Firestore marks it as 'inactive'
+  Future<void> deactivateUser({
+    required String id,
+    required String adminEmail,
+    required String adminPassword,
+  }) async {
+    try {
+      print('DEACTIVATE: Starting deactivation for user $id');
+      print('DEACTIVATE: Admin email provided: $adminEmail');
+
+      // Get current user
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        print('DEACTIVATE ERROR: No user is currently signed in');
+        throw StateError('No user is currently signed in');
+      }
+
+      print('DEACTIVATE: Current user email: ${currentUser.email}');
+
+      // Verify credentials match current user (case-insensitive)
+      if (currentUser.email?.toLowerCase() != adminEmail.toLowerCase()) {
+        print(
+          'DEACTIVATE ERROR: Email mismatch - current: ${currentUser.email}, provided: $adminEmail',
+        );
+        throw StateError('Provided credentials do not match current user');
+      }
+
+      // Note: Skipping reauthentication as it times out on Windows desktop
+      // The admin is already authenticated and we trust the current session
+      print('DEACTIVATE: Admin is already authenticated, proceeding...');
+
+      // Check if user has admin role
+      print('DEACTIVATE: Checking admin role...');
+      final adminDoc = await _firestore
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+      final role = adminDoc.data()?['role'];
+      print('DEACTIVATE: User role is: $role');
+
+      if (role != 'admin' && role != 'product_owner') {
+        print('DEACTIVATE ERROR: Insufficient permissions - role: $role');
+        throw StateError(
+          'Access denied: Only admin or product owner can perform this action',
+        );
+      }
+
+      // Mark as inactive in Firestore
+      print('DEACTIVATE: Updating user status to inactive...');
       await _firestore.collection('users').doc(id).update({
         'status': 'inactive',
         'deactivatedAt': FieldValue.serverTimestamp(),
       });
-    } catch (e) {
+      print('DEACTIVATE: Successfully deactivated user $id');
+    } catch (e, stackTrace) {
+      print('DEACTIVATE FAILED: $e');
+      print('Stack trace: $stackTrace');
       throw StateError("Error deactivating user $id: $e");
     }
   }
@@ -108,10 +234,56 @@ class UserService {
   Future<void> updateUserProfile({
     required String id,
     required Map<String, dynamic> updates,
+    required String adminEmail,
+    required String adminPassword,
   }) async {
     try {
+      print('UPDATE PROFILE: Starting update for user $id');
+      print('UPDATE PROFILE: Admin email provided: $adminEmail');
+
+      // Get current user
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        print('UPDATE PROFILE ERROR: No user is currently signed in');
+        throw StateError('No user is currently signed in');
+      }
+
+      print('UPDATE PROFILE: Current user email: ${currentUser.email}');
+
+      // Verify credentials match current user (case-insensitive)
+      if (currentUser.email?.toLowerCase() != adminEmail.toLowerCase()) {
+        print(
+          'UPDATE PROFILE ERROR: Email mismatch - current: ${currentUser.email}, provided: $adminEmail',
+        );
+        throw StateError('Provided credentials do not match current user');
+      }
+
+      // Note: Skipping reauthentication as it times out on Windows desktop
+      // The admin is already authenticated and we trust the current session
+      print('UPDATE PROFILE: Admin is already authenticated, proceeding...');
+
+      // Check if user has admin role
+      print('UPDATE PROFILE: Checking admin role...');
+      final adminDoc = await _firestore
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+      final role = adminDoc.data()?['role'];
+      print('UPDATE PROFILE: User role is: $role');
+
+      if (role != 'admin' && role != 'product_owner') {
+        print('UPDATE PROFILE ERROR: Insufficient permissions - role: $role');
+        throw StateError(
+          'Access denied: Only admin or product owner can perform this action',
+        );
+      }
+
+      print('UPDATE PROFILE: Updating user profile...');
       await _firestore.collection('users').doc(id).update(updates);
-    } catch (e) {
+      print('UPDATE PROFILE: Successfully updated user $id');
+    } catch (e, stackTrace) {
+      print('UPDATE PROFILE FAILED: $e');
+      print('Stack trace: $stackTrace');
       throw StateError("Error updating user $id: $e");
     }
   }

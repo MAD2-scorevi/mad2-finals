@@ -34,158 +34,264 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF3F6FA),
-      body: Column(
-        children: [
-          // ================= HEADER =================
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 25),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF071C3A), Color(0xFF133B7C)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 800;
+
+          return Column(
+            children: [
+              // ================= HEADER =================
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(
+                  vertical: isMobile ? 20 : 40,
+                  horizontal: isMobile ? 16 : 25,
+                ),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF071C3A), Color(0xFF133B7C)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "MAD2 Inventory Dashboard",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: isMobile ? 20 : 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "Manage products, stock levels, and electronics categories.",
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: isMobile ? 12 : 16,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  "MAD2 Inventory Dashboard",
+
+              SizedBox(height: isMobile ? 8 : 18),
+
+              // ================= BODY =================
+              Expanded(
+                child: isMobile ? _buildMobileLayout() : _buildDesktopLayout(),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayout() {
+    return Row(
+      children: [
+        // ================= SIDE NAVIGATION =================
+        Container(
+          width: 220,
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          color: const Color(0xFF102A44),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  "Navigation",
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
+                    color: Colors.white70,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 6),
-                Text(
-                  "Manage products, stock levels, and electronics categories.",
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+
+              const SizedBox(height: 20),
+
+              // --------- LIST OF TABS ----------
+              ...List.generate(
+                tabs.length,
+                (index) => InkWell(
+                  onTap: () {
+                    if (tabs[index] == "Manage Admins") {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ManageAdminsPage(),
+                        ),
+                      );
+                      return;
+                    }
+                    setState(() => selectedTab = index);
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    color: selectedTab == index
+                        ? const Color(0xFF1F3D60)
+                        : Colors.transparent,
+                    child: Text(
+                      tabs[index],
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ),
                 ),
-              ],
-            ),
-          ),
+              ),
 
-          const SizedBox(height: 18),
+              const Spacer(),
 
-          // ================= BODY =================
-          Expanded(
-            child: Row(
-              children: [
-                // ================= SIDE NAVIGATION =================
-                Container(
-                  width: 220,
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  color: const Color(0xFF102A44),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              // ================= LOGOUT BUTTON =================
+              InkWell(
+                onTap: () async {
+                  await _activityService.logLogout();
+                  if (mounted) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => LoginPage()),
+                    );
+                  }
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  color: const Color(0xFF8B0000),
+                  child: const Row(
                     children: [
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          "Navigation",
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // --------- LIST OF TABS ----------
-                      ...List.generate(
-                        tabs.length,
-                        (index) => InkWell(
-                          onTap: () {
-                            if (tabs[index] == "Manage Admins") {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ManageAdminsPage(),
-                                ),
-                              );
-                              return;
-                            }
-                            setState(() => selectedTab = index);
-                          },
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                            color: selectedTab == index
-                                ? const Color(0xFF1F3D60)
-                                : Colors.transparent,
-                            child: Text(
-                              tabs[index],
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const Spacer(),
-
-                      // ================= LOGOUT BUTTON =================
-                      InkWell(
-                        onTap: () async {
-                          await _activityService.logLogout();
-                          if (mounted) {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => LoginPage(),
-                              ),
-                            );
-                          }
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          color: const Color(0xFF8B0000),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.logout, color: Colors.white, size: 20),
-                              SizedBox(width: 10),
-                              Text(
-                                "Log Out",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      Icon(Icons.logout, color: Colors.white, size: 20),
+                      SizedBox(width: 10),
+                      Text(
+                        "Log Out",
+                        style: TextStyle(color: Colors.white, fontSize: 16),
                       ),
                     ],
                   ),
                 ),
+              ),
+            ],
+          ),
+        ),
 
-                // ================= MAIN CONTENT =================
-                Expanded(
-                  child: selectedTab == 1
-                      ? _buildPageContent() // Inventory tab without scroll wrapper
-                      : SingleChildScrollView(
-                          padding: const EdgeInsets.all(25),
-                          child: _buildPageContent(),
+        // ================= MAIN CONTENT =================
+        Expanded(
+          child: selectedTab == 1
+              ? _buildPageContent() // Inventory tab without scroll wrapper
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(25),
+                  child: _buildPageContent(),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return Column(
+      children: [
+        // Mobile tab selector
+        Container(
+          color: const Color(0xFF102A44),
+          child: Row(
+            children: List.generate(
+              tabs.length,
+              (index) => Expanded(
+                child: InkWell(
+                  onTap: () {
+                    if (tabs[index] == "Manage Admins") {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ManageAdminsPage(),
                         ),
+                      );
+                      return;
+                    }
+                    setState(() => selectedTab = index);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: selectedTab == index
+                              ? Colors.white
+                              : Colors.transparent,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      tabs[index],
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: selectedTab == index
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        // Main content
+        Expanded(
+          child: selectedTab == 1
+              ? _buildPageContent() // Inventory tab has its own layout
+              : SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: _buildPageContent(),
+                    ),
+                  ),
+                ),
+        ),
+        // Logout button for mobile
+        InkWell(
+          onTap: () async {
+            await _activityService.logLogout();
+            if (mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => LoginPage()),
+              );
+            }
+          },
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            color: const Color(0xFF8B0000),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.logout, color: Colors.white, size: 20),
+                SizedBox(width: 10),
+                Text(
+                  "Log Out",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

@@ -62,97 +62,136 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFF133B7C)),
             )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Add New Admin",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final isMobile = constraints.maxWidth < 800;
+                return SingleChildScrollView(
+                  padding: EdgeInsets.all(isMobile ? 16 : 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: TextField(
-                          controller: emailController,
-                          decoration: InputDecoration(
-                            hintText: "Enter admin email",
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
+                      const Text(
+                        "Add New Admin",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      isMobile
+                          ? Column(
+                              children: [
+                                TextField(
+                                  controller: emailController,
+                                  decoration: InputDecoration(
+                                    hintText: "Enter admin email",
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF133B7C),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 18,
+                                      ),
+                                    ),
+                                    onPressed: _addAdmin,
+                                    child: const Text(
+                                      "Add",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: emailController,
+                                    decoration: InputDecoration(
+                                      hintText: "Enter admin email",
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF133B7C),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 18,
+                                      horizontal: 20,
+                                    ),
+                                  ),
+                                  onPressed: _addAdmin,
+                                  child: const Text(
+                                    "Add",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
+                      const SizedBox(height: 25),
+
+                      const Text(
+                        "Existing Admins",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF133B7C),
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 18,
-                            horizontal: 20,
-                          ),
-                        ),
-                        onPressed: _addAdmin,
-                        child: const Text(
-                          "Add",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
+                      const SizedBox(height: 12),
+
+                      admins.isEmpty
+                          ? Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  'No admin users found',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              physics: const NeverScrollableScrollPhysics(),
+                              shrinkWrap: true,
+                              itemCount: admins.length,
+                              itemBuilder: (context, index) {
+                                return _adminCard(admins[index], isMobile);
+                              },
+                            ),
                     ],
                   ),
-                  const SizedBox(height: 25),
-
-                  const Text(
-                    "Existing Admins",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  admins.isEmpty
-                      ? Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'No admin users found',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
-                        )
-                      : ListView.builder(
-                          physics: const NeverScrollableScrollPhysics(),
-                          shrinkWrap: true,
-                          itemCount: admins.length,
-                          itemBuilder: (context, index) {
-                            return _adminCard(admins[index]);
-                          },
-                        ),
-                ],
-              ),
+                );
+              },
             ),
     );
   }
 
-  Widget _adminCard(Map<String, dynamic> admin) {
+  Widget _adminCard(Map<String, dynamic> admin, bool isMobile) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -163,46 +202,117 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
           BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8),
         ],
       ),
-      child: Row(
-        children: [
-          const Icon(Icons.person, color: Color(0xFF133B7C)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
+      child: isMobile
+          ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  admin['email'],
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                Row(
+                  children: [
+                    const Icon(Icons.person, color: Color(0xFF133B7C)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            admin['email'],
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (admin['fullName'] != 'N/A')
+                            Text(
+                              admin['fullName'],
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton.icon(
+                      icon: const Icon(
+                        Icons.visibility,
+                        color: Color(0xFF133B7C),
+                        size: 20,
+                      ),
+                      label: const Text('View'),
+                      onPressed: () => _viewAdmin(admin),
+                    ),
+                    TextButton.icon(
+                      icon: const Icon(
+                        Icons.edit,
+                        color: Colors.orange,
+                        size: 20,
+                      ),
+                      label: const Text('Edit'),
+                      onPressed: () => _editAdmin(admin),
+                    ),
+                    TextButton.icon(
+                      icon: const Icon(
+                        Icons.person_remove,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                      label: const Text('Remove'),
+                      onPressed: () =>
+                          _removeAdmin(admin['id'], admin['email']),
+                    ),
+                  ],
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                const Icon(Icons.person, color: Color(0xFF133B7C)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        admin['email'],
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (admin['fullName'] != 'N/A')
+                        Text(
+                          admin['fullName'],
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-                if (admin['fullName'] != 'N/A')
-                  Text(
-                    admin['fullName'],
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.visibility, color: Color(0xFF133B7C)),
+                  tooltip: 'View Details',
+                  onPressed: () => _viewAdmin(admin),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.orange),
+                  tooltip: 'Edit Admin',
+                  onPressed: () => _editAdmin(admin),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.person_remove, color: Colors.red),
+                  tooltip: 'Remove Admin',
+                  onPressed: () => _removeAdmin(admin['id'], admin['email']),
+                ),
               ],
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.visibility, color: Color(0xFF133B7C)),
-            tooltip: 'View Details',
-            onPressed: () => _viewAdmin(admin),
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit, color: Colors.orange),
-            tooltip: 'Edit Admin',
-            onPressed: () => _editAdmin(admin),
-          ),
-          IconButton(
-            icon: const Icon(Icons.person_remove, color: Colors.red),
-            tooltip: 'Remove Admin',
-            onPressed: () => _removeAdmin(admin['id'], admin['email']),
-          ),
-        ],
-      ),
     );
   }
 

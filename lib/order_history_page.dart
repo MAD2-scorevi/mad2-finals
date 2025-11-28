@@ -115,93 +115,156 @@ class OrderHistoryPage extends StatelessWidget {
         onTap: () => _showOrderDetails(context, order),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < 400;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Order #${order.id.substring(0, 8).toUpperCase()}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(statusIcon, size: 14, color: statusColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          order.status.toUpperCase(),
+                  isMobile
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Order #${order.id.substring(0, 8).toUpperCase()}',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    statusIcon,
+                                    size: 14,
+                                    color: statusColor,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    order.status.toUpperCase(),
+                                    style: TextStyle(
+                                      color: statusColor,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Order #${order.id.substring(0, 8).toUpperCase()}',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    statusIcon,
+                                    size: 14,
+                                    color: statusColor,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    order.status.toUpperCase(),
+                                    style: TextStyle(
+                                      color: statusColor,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        size: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          order.formattedDate,
                           style: TextStyle(
-                            color: statusColor,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 16),
+                      Icon(
+                        Icons.shopping_cart,
+                        size: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${order.totalItems} item${order.totalItems > 1 ? 's' : ''}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Total Amount:',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        order.formattedTotal,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0F3360),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    size: 14,
-                    color: Colors.grey.shade600,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    order.formattedDate,
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                  ),
-                  const SizedBox(width: 16),
-                  Icon(
-                    Icons.shopping_cart,
-                    size: 14,
-                    color: Colors.grey.shade600,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${order.totalItems} item${order.totalItems > 1 ? 's' : ''}',
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              const Divider(height: 1),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Total Amount:',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                  ),
-                  Text(
-                    order.formattedTotal,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F3360),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),

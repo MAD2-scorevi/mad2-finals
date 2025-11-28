@@ -207,6 +207,14 @@ Win32Window::MessageHandler(HWND hwnd,
       return 0;
     }
 
+    case WM_GETMINMAXINFO: {
+      // Set minimum window size (375x667 - iPhone SE / standard modern phone size)
+      auto info = reinterpret_cast<MINMAXINFO*>(lparam);
+      info->ptMinTrackSize.x = 375;
+      info->ptMinTrackSize.y = 667;
+      return 0;
+    }
+
     case WM_ACTIVATE:
       if (child_content_ != nullptr) {
         SetFocus(child_content_);

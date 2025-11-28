@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:frontend3/services/user_service.dart';
 import 'login_page.dart';
 import 'inventory_management_page.dart';
@@ -22,142 +23,247 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   final TextEditingController _userController = TextEditingController();
 
+  // Cache credentials for the entire session (until logout)
+  Map<String, String>? _cachedCredentials;
+
+  // Key to force stream refresh after operations
+  Key _userStreamKey = UniqueKey();
+
   @override
   void dispose() {
     _userController.dispose();
     super.dispose();
   }
 
+  // Refresh the user stream after operations
+  void _refreshUserStream() {
+    setState(() {
+      _userStreamKey = UniqueKey();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF3F6FA),
-      body: Column(
-        children: [
-          // ================= HEADER =================
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 25),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF071C3A), Color(0xFF133B7C)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 800;
+
+          return Column(
+            children: [
+              // ================= HEADER =================
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(
+                  vertical: isMobile ? 20 : 40,
+                  horizontal: isMobile ? 16 : 25,
+                ),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF071C3A), Color(0xFF133B7C)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "MAD2 Admin Dashboard",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: isMobile ? 20 : 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "Manage products, stock levels, and electronics categories.",
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: isMobile ? 12 : 16,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  "MAD2 Admin Dashboard",
+              SizedBox(height: isMobile ? 8 : 18),
+
+              // ================= BODY =================
+              Expanded(
+                child: isMobile ? _buildMobileLayout() : _buildDesktopLayout(),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayout() {
+    return Row(
+      children: [
+        // ------------------- SIDE NAVIGATION ---------------------
+        Container(
+          width: 220,
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          color: const Color(0xFF102A44),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  "Navigation",
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
+                    color: Colors.white70,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 6),
-                Text(
-                  "Manage products, stock levels, and electronics categories.",
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+              const SizedBox(height: 20),
+              ...List.generate(
+                tabs.length,
+                (index) => InkWell(
+                  onTap: () => setState(() => selectedTab = index),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    color: selectedTab == index
+                        ? const Color(0xFF1F3D60)
+                        : Colors.transparent,
+                    child: Text(
+                      tabs[index],
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-
-          // ================= BODY =================
-          Expanded(
-            child: Row(
-              children: [
-                // ------------------- SIDE NAVIGATION ---------------------
-                Container(
-                  width: 220,
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  color: const Color(0xFF102A44),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+              const Spacer(),
+              // ------------------- LOGOUT ---------------------
+              InkWell(
+                onTap: () async {
+                  await _activityService.logLogout();
+                  if (mounted) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => LoginPage()),
+                    );
+                  }
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  color: const Color(0xFF8B0000),
+                  child: const Row(
                     children: [
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          "Navigation",
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      ...List.generate(
-                        tabs.length,
-                        (index) => InkWell(
-                          onTap: () => setState(() => selectedTab = index),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                            color: selectedTab == index
-                                ? const Color(0xFF1F3D60)
-                                : Colors.transparent,
-                            child: Text(
-                              tabs[index],
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      // ------------------- LOGOUT ---------------------
-                      InkWell(
-                        onTap: () async {
-                          await _activityService.logLogout();
-                          if (mounted) {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => LoginPage(),
-                              ),
-                            );
-                          }
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          color: const Color(0xFF8B0000),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.logout, color: Colors.white, size: 20),
-                              SizedBox(width: 10),
-                              Text(
-                                "Log Out",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      Icon(Icons.logout, color: Colors.white, size: 20),
+                      SizedBox(width: 10),
+                      Text(
+                        "Log Out",
+                        style: TextStyle(color: Colors.white, fontSize: 16),
                       ),
                     ],
                   ),
                 ),
-                // ------------------- MAIN CONTENT ------------------------
-                Expanded(child: _buildPageContent()),
+              ),
+            ],
+          ),
+        ),
+        // ------------------- MAIN CONTENT ------------------------
+        Expanded(child: _buildPageContent()),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return Column(
+      children: [
+        // Mobile tab selector
+        Container(
+          color: const Color(0xFF102A44),
+          child: Row(
+            children: List.generate(
+              tabs.length,
+              (index) => Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => selectedTab = index),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: selectedTab == index
+                              ? Colors.white
+                              : Colors.transparent,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      tabs[index],
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: selectedTab == index
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        // Main content
+        Expanded(
+          child: selectedTab == 1
+              ? _buildPageContent() // Inventory has its own structure
+              : SingleChildScrollView(
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: _buildPageContent(),
+                  ),
+                ),
+        ),
+        // Logout button for mobile
+        InkWell(
+          onTap: () async {
+            await _activityService.logLogout();
+            if (mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => LoginPage()),
+              );
+            }
+          },
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            color: const Color(0xFF8B0000),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.logout, color: Colors.white, size: 20),
+                SizedBox(width: 10),
+                Text(
+                  "Log Out",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
               ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -170,7 +276,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           child: _overviewTab(),
         );
       case 1:
-        return const InventoryManagementPage();
+        return _inventoryTab();
       case 2:
         return SingleChildScrollView(
           padding: const EdgeInsets.all(25),
@@ -182,6 +288,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
           child: _overviewTab(),
         );
     }
+  }
+
+  // ============================ INVENTORY TAB =============================
+  Widget _inventoryTab() {
+    return const InventoryManagementPage();
   }
 
   // ============================ OVERVIEW TAB =============================
@@ -203,7 +314,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 .toSet()
                 .length;
 
-            return Row(
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
               children: [
                 _statCard(
                   title: "Total Products",
@@ -289,37 +402,41 @@ class _AdminDashboardState extends State<AdminDashboard> {
     required String value,
     required IconData icon,
   }) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 6),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: const Color(0xFF133B7C),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: Colors.white, size: 32),
-            const SizedBox(height: 10),
-            Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
+          width: constraints.maxWidth > 600
+              ? 200
+              : constraints.maxWidth / 3 - 16,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: const Color(0xFF133B7C),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
-            ),
-            Text(title, style: const TextStyle(color: Colors.white70)),
-          ],
-        ),
-      ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: Colors.white, size: 32),
+              const SizedBox(height: 10),
+              Text(
+                value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(title, style: const TextStyle(color: Colors.white70)),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -431,12 +548,50 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
         const SizedBox(height: 8),
         Text(
-          "View and manage regular user accounts. Users must register through the app.",
+          "Add new users or manage existing user accounts",
           style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
         ),
         const SizedBox(height: 20),
 
+        // Add User Section
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _userController,
+                decoration: InputDecoration(
+                  hintText: "Enter user email",
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton(
+              onPressed: _addUser,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF133B7C),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 20,
+                ),
+              ),
+              child: const Text("Add User"),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+
         StreamBuilder<List<UserManageable>>(
+          key: _userStreamKey, // Enable stream refresh
           stream: _userService.getUsers(limit: 50),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -449,6 +604,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
             }
 
             if (snapshot.hasError) {
+              // Ignore permission errors during auth transitions (adding users, etc)
+              final errorMsg = snapshot.error.toString();
+              if (errorMsg.contains('permission-denied') ||
+                  errorMsg.contains('PERMISSION_DENIED')) {
+                // Show loading indicator instead of error during auth transition
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: CircularProgressIndicator(color: Color(0xFF133B7C)),
+                  ),
+                );
+              }
+
+              // Show actual errors that aren't permission-related
               return Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -674,6 +843,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
 
     if (result == true && mounted) {
+      // Get admin credentials for re-authentication
+      final credentials = await _getAdminCredentials();
+      if (credentials == null) {
+        fullNameController.dispose();
+        phoneController.dispose();
+        addressController.dispose();
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Update cancelled')));
+        }
+        return;
+      }
+
       try {
         await _userService.updateUserProfile(
           id: user.id,
@@ -682,6 +865,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
             'phoneNumber': phoneController.text.trim(),
             'address': addressController.text.trim(),
           },
+          adminEmail: credentials['email']!,
+          adminPassword: credentials['password']!,
         );
 
         await _activityService.logUserInfoUpdate({
@@ -690,8 +875,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
         });
 
         if (mounted) {
+          _refreshUserStream(); // Refresh the stream
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('User updated successfully')),
+            const SnackBar(
+              content: Text('User updated successfully'),
+              duration: Duration(seconds: 2),
+            ),
           );
         }
       } catch (e) {
@@ -708,13 +897,201 @@ class _AdminDashboardState extends State<AdminDashboard> {
     addressController.dispose();
   }
 
+  // Helper method to get admin credentials for re-authentication
+  Future<Map<String, String>?> _getAdminCredentials() async {
+    // Check if we have cached credentials (valid for entire session)
+    if (_cachedCredentials != null) {
+      print('Using cached credentials from this session');
+      return _cachedCredentials;
+    }
+
+    print('No cached credentials, requesting admin confirmation');
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Confirm Admin Credentials'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Please enter your admin credentials to continue:',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                labelStyle: TextStyle(color: Colors.white70),
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              onSubmitted: (_) {
+                // Move focus to password field on Enter
+                FocusScope.of(dialogContext).nextFocus();
+              },
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: passwordController,
+              decoration: const InputDecoration(
+                labelText: 'Password',
+                labelStyle: TextStyle(color: Colors.white70),
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) {
+                // Trigger confirm on Enter in password field
+                final email = emailController.text.trim();
+                final password = passwordController.text.trim();
+                if (email.isNotEmpty && password.isNotEmpty) {
+                  emailController.text = email;
+                  passwordController.text = password;
+                  Navigator.pop(dialogContext, true);
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF133B7C),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              // Capture values before popping
+              final email = emailController.text.trim();
+              final password = passwordController.text.trim();
+              Navigator.pop(dialogContext, true);
+              // Store in controllers for retrieval after dialog closes
+              emailController.text = email;
+              passwordController.text = password;
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      final credentials = {
+        'email': emailController.text.trim(),
+        'password': passwordController.text.trim(),
+      };
+      emailController.dispose();
+      passwordController.dispose();
+
+      // Cache credentials for entire session
+      _cachedCredentials = credentials;
+      print('Credentials cached for session (until logout)');
+
+      return credentials;
+    }
+
+    emailController.dispose();
+    passwordController.dispose();
+    return null;
+  }
+
+  Future<void> _addUser() async {
+    final email = _userController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter an email address')),
+      );
+      return;
+    }
+
+    // Validate email format
+    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email address')),
+      );
+      return;
+    }
+
+    try {
+      // Check if user already exists
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('User with this email already exists'),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Get admin credentials for re-authentication
+      final credentials = await _getAdminCredentials();
+      if (credentials == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Operation cancelled')));
+        }
+        return;
+      }
+
+      // Add user to Firebase Auth and Firestore
+      await _userService.addUser(
+        email: email,
+        adminEmail: credentials['email']!,
+        adminPassword: credentials['password']!,
+      );
+
+      // Log activity
+      await _activityService.logUserInfoUpdate({
+        'userEmail': email,
+        'action': 'User created with Firebase Auth',
+      });
+
+      _userController.clear();
+
+      if (mounted) {
+        _refreshUserStream(); // Refresh the stream
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'User $email created successfully with password "Welcome123!"',
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error adding user: $e')));
+      }
+    }
+  }
+
   Future<void> _deactivateUser(String userId, String email) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Deactivate User'),
         content: Text(
-          'Are you sure you want to deactivate $email?\\n\\nThe user will no longer be able to access the system, but their data will be preserved.',
+          'Are you sure you want to deactivate $email?\n\nThe user will no longer be able to access the system, but their data will be preserved.\n\nNote: Firebase Auth record will remain but the account will be inaccessible.',
         ),
         actions: [
           TextButton(
@@ -733,8 +1110,23 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
 
     if (confirm == true && mounted) {
+      // Get admin credentials for re-authentication
+      final credentials = await _getAdminCredentials();
+      if (credentials == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Deactivation cancelled')),
+          );
+        }
+        return;
+      }
+
       try {
-        await _userService.deactivateUser(id: userId);
+        await _userService.deactivateUser(
+          id: userId,
+          adminEmail: credentials['email']!,
+          adminPassword: credentials['password']!,
+        );
 
         await _activityService.logUserInfoUpdate({
           'userEmail': email,
@@ -742,8 +1134,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
         });
 
         if (mounted) {
+          _refreshUserStream(); // Refresh the stream
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('User $email deactivated successfully')),
+            SnackBar(
+              content: Text('User $email deactivated successfully'),
+              duration: const Duration(seconds: 2),
+            ),
           );
         }
       } catch (e) {
