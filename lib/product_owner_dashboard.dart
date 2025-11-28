@@ -17,12 +17,7 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
   final InventoryService _inventoryService = InventoryService();
   final ActivityService _activityService = ActivityService();
 
-  final List<String> tabs = [
-    "Overview",
-    "Inventory",
-    "Feature Requests",
-    "Manage Admins",
-  ];
+  final List<String> tabs = ["Overview", "Inventory", "Manage Admins"];
 
   @override
   void initState() {
@@ -302,8 +297,6 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
         return _overviewTab();
       case 1:
         return _inventoryTab();
-      case 2:
-        return _featureRequestTab();
       default:
         return _overviewTab();
     }
@@ -524,10 +517,6 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
         icon = Icons.shopping_cart;
         iconColor = Colors.purple;
         break;
-      case ActivityService.FEATURE_REQUEST:
-        icon = Icons.lightbulb;
-        iconColor = Colors.amber;
-        break;
       case ActivityService.ADMIN_PROMOTED:
         icon = Icons.person_add;
         iconColor = Colors.green;
@@ -592,54 +581,6 @@ class _ProductOwnerDashboardState extends State<ProductOwnerDashboard> {
     return Padding(
       padding: const EdgeInsets.all(25),
       child: const InventoryManagementPage(),
-    );
-  }
-
-  // ============================ FEATURE REQUEST TAB =============================
-  Widget _featureRequestTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Upcoming Features",
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 10),
-        _roadmapTile("Auto-low-stock email alerts"),
-        _roadmapTile("Supplier integration & restock requests"),
-        _roadmapTile("Bulk CSV product import"),
-        _roadmapTile("QR inventory scanning to update stock"),
-      ],
-    );
-  }
-
-  Widget _roadmapTile(String feature) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.check_circle_outline, color: Color(0xFF133B7C)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              feature,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

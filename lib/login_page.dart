@@ -245,26 +245,6 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                   ),
 
-                  const SizedBox(height: 15),
-
-                  // FORGOT PASSWORD LINK
-                  Center(
-                    child: GestureDetector(
-                      onTap: () {
-                        _showSnackBar("Forgot Password functionality TBD.");
-                        // TODO: Implement navigation to Forgot Password screen
-                      },
-                      child: const Text(
-                        "Forgot Password?",
-                        style: TextStyle(
-                          color: primaryBlue,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-
                   const SizedBox(height: 25),
 
                   // DIVIDER WITH OR

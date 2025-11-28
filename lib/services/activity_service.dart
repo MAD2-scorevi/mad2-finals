@@ -80,7 +80,6 @@ class ActivityService {
   static const String INVENTORY_DELETED = 'inventory_deleted';
   static const String ORDER_PLACED = 'order_placed';
   static const String ORDER_UPDATED = 'order_updated';
-  static const String FEATURE_REQUEST = 'feature_request';
   static const String ADMIN_PROMOTED = 'admin_promoted';
   static const String ADMIN_DEMOTED = 'admin_demoted';
 
@@ -299,14 +298,6 @@ class ActivityService {
         'itemCount': itemCount,
         if (total != null) 'total': total,
       },
-    );
-  }
-
-  Future<void> logFeatureRequest(String feature) async {
-    await logActivity(
-      activityType: FEATURE_REQUEST,
-      description: 'Submitted feature request: $feature',
-      metadata: {'feature': feature},
     );
   }
 

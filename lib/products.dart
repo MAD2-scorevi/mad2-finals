@@ -84,17 +84,11 @@ class _ProductsPageState extends State<ProductsPage> {
           ),
         ),
         actions: [
-          // Settings gear icon with a custom color (dark blue)
+          // Menu icon for History and Logout
           IconButton(
-            icon: const Icon(
-              Icons.settings,
-              color: Colors
-                  .white, // Change the color to white (or any color you like)
-            ),
+            icon: const Icon(Icons.menu, color: Colors.white),
             onPressed: () {
-              _showSettingsMenu(
-                context,
-              ); // Opens the settings menu (bottom sheet)
+              _showSettingsMenu(context); // Opens the menu (bottom sheet)
             },
           ),
         ],
@@ -228,7 +222,7 @@ class _ProductsPageState extends State<ProductsPage> {
     );
   }
 
-  // ---------------- SETTINGS MENU ----------------
+  // ---------------- MENU ----------------
   void _showSettingsMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -236,17 +230,6 @@ class _ProductsPageState extends State<ProductsPage> {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(
-                Icons.settings,
-                color: Color(0xFF0F3360), // Custom color for Settings icon
-              ),
-              title: const Text('Settings'),
-              onTap: () {
-                // Navigate to Settings page (you can create this page later)
-                Navigator.pop(context); // Close the bottom sheet
-              },
-            ),
             ListTile(
               leading: const Icon(
                 Icons.history,

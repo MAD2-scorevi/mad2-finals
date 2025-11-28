@@ -595,10 +595,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
         icon = Icons.shopping_cart;
         iconColor = Colors.purple;
         break;
-      case ActivityService.FEATURE_REQUEST:
-        icon = Icons.lightbulb;
-        iconColor = Colors.amber;
-        break;
       case ActivityService.ADMIN_PROMOTED:
         icon = Icons.person_add;
         iconColor = Colors.green;
