@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'services/firebase_auth_service.dart';
 
 class RegistrationPage extends StatefulWidget {
@@ -17,6 +20,139 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final TextEditingController dobController = TextEditingController();
   final FirebaseAuthService _authService = FirebaseAuthService();
   bool _isLoading = false;
+  bool _isCheckingEmail = false;
+  String? _emailError;
+
+  @override
+  void initState() {
+    super.initState();
+    emailController.addListener(_validateEmail);
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    emailController.removeListener(_validateEmail);
+    super.dispose();
+  }
+
+  Timer? _debounceTimer;
+
+  Future<void> _validateEmail() async {
+    final email = emailController.text.trim();
+
+    // Cancel previous timer
+    _debounceTimer?.cancel();
+
+    // Clear validation if empty
+    if (email.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _emailError = null;
+          _isCheckingEmail = false;
+        });
+      }
+      return;
+    }
+
+    // Basic email format validation
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(email)) {
+      if (mounted) {
+        setState(() {
+          _emailError = 'Invalid email format';
+          _isCheckingEmail = false;
+        });
+      }
+      return;
+    }
+
+    // Show loading state immediately
+    if (mounted) {
+      setState(() {
+        _isCheckingEmail = true;
+        _emailError = null;
+      });
+    }
+
+    // Debounce: wait 500ms before checking
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      if (!mounted) return;
+
+      print('🔍 Validating email: $email');
+
+      try {
+        // Check both Firebase Auth AND Firestore for complete coverage
+
+        // 1. Check Firebase Auth first (requires sign-in methods)
+        final signInMethods = await FirebaseAuth.instance
+            .fetchSignInMethodsForEmail(email);
+        print('📧 Firebase Auth methods: $signInMethods');
+
+        // 2. Check Firestore users collection (catches users created directly)
+        QuerySnapshot? firestoreCheck;
+        try {
+          firestoreCheck = await FirebaseFirestore.instance
+              .collection('users')
+              .where('email', isEqualTo: email)
+              .limit(1)
+              .get();
+          print('📊 Firestore documents: ${firestoreCheck.docs.length}');
+        } catch (firestoreError) {
+          print('⚠️ Firestore check failed (no permission): $firestoreError');
+          // Continue - we'll rely on Firebase Auth result
+        }
+
+        if (!mounted) return;
+
+        // Email exists if found in EITHER location
+        final existsInAuth = signInMethods.isNotEmpty;
+        final existsInFirestore = (firestoreCheck?.docs.isNotEmpty ?? false);
+
+        if (existsInAuth || existsInFirestore) {
+          print(
+            '❌ Email already registered: $email (Auth: $existsInAuth, Firestore: $existsInFirestore)',
+          );
+          setState(() {
+            _isCheckingEmail = false;
+            _emailError = '❌ This email is already registered';
+          });
+        } else {
+          print('✅ Email available: $email');
+          setState(() {
+            _isCheckingEmail = false;
+            _emailError = null;
+          });
+        }
+      } on FirebaseAuthException catch (e) {
+        print('⚠️ Firebase Auth error: ${e.code} - ${e.message}');
+
+        if (!mounted) return;
+
+        // Handle specific error cases
+        if (e.code == 'invalid-email') {
+          setState(() {
+            _isCheckingEmail = false;
+            _emailError = 'Invalid email format';
+          });
+        } else {
+          setState(() {
+            _isCheckingEmail = false;
+            _emailError = 'Unable to verify email. Please try again.';
+          });
+        }
+      } catch (e) {
+        print('❌ Unexpected error: $e');
+
+        if (!mounted) return;
+
+        setState(() {
+          _isCheckingEmail = false;
+          _emailError = 'Unable to verify email. Please check your connection.';
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +213,28 @@ class _RegistrationPageState extends State<RegistrationPage> {
             const SizedBox(height: 8),
             TextField(
               controller: emailController,
-              decoration: _inputDecoration("juan@example.com"),
+              keyboardType: TextInputType.emailAddress,
+              decoration: _inputDecoration("juan@example.com").copyWith(
+                suffixIcon: _isCheckingEmail
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : _emailError != null
+                    ? Icon(Icons.error, color: Colors.red.shade700)
+                    : emailController.text.isNotEmpty
+                    ? Icon(Icons.check_circle, color: Colors.green.shade700)
+                    : null,
+                errorText: _emailError,
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.red.shade300, width: 2),
+                ),
+              ),
             ),
             const SizedBox(height: 8),
             // Email warning
@@ -192,9 +349,16 @@ class _RegistrationPageState extends State<RegistrationPage> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF12A84F),
+                  disabledBackgroundColor: Colors.grey.shade400,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                onPressed: _isLoading ? null : _register,
+                onPressed:
+                    (_isLoading ||
+                        _emailError != null ||
+                        _isCheckingEmail ||
+                        emailController.text.trim().isEmpty)
+                    ? null
+                    : _register,
                 child: _isLoading
                     ? const SizedBox(
                         height: 20,

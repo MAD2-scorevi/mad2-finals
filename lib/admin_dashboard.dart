@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:frontend3/services/user_service.dart';
 import 'login_page.dart';
 import 'inventory_management_page.dart';
@@ -23,6 +25,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   final TextEditingController _userController = TextEditingController();
 
+  bool _isCheckingUserEmail = false;
+  String? _userEmailError;
+  Timer? _debounceUserTimer;
+
   // Cache credentials for the entire session (until logout)
   Map<String, String>? _cachedCredentials;
 
@@ -30,12 +36,129 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Key _userStreamKey = UniqueKey();
 
   @override
+  void initState() {
+    super.initState();
+    _userController.addListener(_validateUserEmail);
+  }
+
+  @override
   void dispose() {
+    _debounceUserTimer?.cancel();
+    _userController.removeListener(_validateUserEmail);
     _userController.dispose();
     super.dispose();
   }
 
-  // Refresh the user stream after operations
+  Future<void> _validateUserEmail() async {
+    final email = _userController.text.trim();
+
+    // Cancel previous timer
+    _debounceUserTimer?.cancel();
+
+    // Clear validation if empty
+    if (email.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _userEmailError = null;
+          _isCheckingUserEmail = false;
+        });
+      }
+      return;
+    }
+
+    // Basic email format validation
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(email)) {
+      if (mounted) {
+        setState(() {
+          _userEmailError = 'Invalid email format';
+          _isCheckingUserEmail = false;
+        });
+      }
+      return;
+    }
+
+    // Show loading state immediately
+    if (mounted) {
+      setState(() {
+        _isCheckingUserEmail = true;
+        _userEmailError = null;
+      });
+    }
+
+    // Debounce: wait 500ms before checking
+    _debounceUserTimer = Timer(const Duration(milliseconds: 500), () async {
+      if (!mounted) return;
+
+      print('🔍 Admin validating email: $email');
+
+      try {
+        // Check both Firebase Auth AND Firestore for complete coverage
+        // Admin has permissions for both
+
+        // 1. Check Firebase Auth
+        final signInMethods = await FirebaseAuth.instance
+            .fetchSignInMethodsForEmail(email);
+        print('📧 Admin - Firebase Auth methods: $signInMethods');
+
+        // 2. Check Firestore users collection
+        final firestoreCheck = await FirebaseFirestore.instance
+            .collection('users')
+            .where('email', isEqualTo: email)
+            .limit(1)
+            .get();
+        print('📊 Admin - Firestore documents: ${firestoreCheck.docs.length}');
+
+        if (!mounted) return;
+
+        // Email exists if found in EITHER location
+        final existsInAuth = signInMethods.isNotEmpty;
+        final existsInFirestore = firestoreCheck.docs.isNotEmpty;
+
+        if (existsInAuth || existsInFirestore) {
+          print(
+            '❌ Admin: Email already registered: $email (Auth: $existsInAuth, Firestore: $existsInFirestore)',
+          );
+          setState(() {
+            _isCheckingUserEmail = false;
+            _userEmailError = '❌ Email already registered';
+          });
+        } else {
+          print('✅ Admin: Email available: $email');
+          setState(() {
+            _isCheckingUserEmail = false;
+            _userEmailError = null;
+          });
+        }
+      } on FirebaseAuthException catch (e) {
+        print('⚠️ Admin Firebase Auth error: ${e.code} - ${e.message}');
+
+        if (!mounted) return;
+
+        if (e.code == 'invalid-email') {
+          setState(() {
+            _isCheckingUserEmail = false;
+            _userEmailError = 'Invalid email format';
+          });
+        } else {
+          setState(() {
+            _isCheckingUserEmail = false;
+            _userEmailError = 'Unable to verify email. Try again.';
+          });
+        }
+      } catch (e) {
+        print('❌ Admin unexpected error: $e');
+
+        if (!mounted) return;
+
+        setState(() {
+          _isCheckingUserEmail = false;
+          _userEmailError = 'Unable to verify email. Check connection.';
+        });
+      }
+    });
+  } // Refresh the user stream after operations
+
   void _refreshUserStream() {
     setState(() {
       _userStreamKey = UniqueKey();
@@ -559,6 +682,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             Expanded(
               child: TextField(
                 controller: _userController,
+                keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   hintText: "Enter user email",
                   filled: true,
@@ -571,14 +695,42 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
+                  errorText: _userEmailError,
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Colors.red.shade300,
+                      width: 2,
+                    ),
+                  ),
+                  suffixIcon: _isCheckingUserEmail
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : _userEmailError != null
+                      ? Icon(Icons.error, color: Colors.red.shade700)
+                      : _userController.text.isNotEmpty
+                      ? Icon(Icons.check_circle, color: Colors.green.shade700)
+                      : null,
                 ),
               ),
             ),
             const SizedBox(width: 12),
             ElevatedButton(
-              onPressed: _addUser,
+              onPressed:
+                  (_userEmailError != null ||
+                      _isCheckingUserEmail ||
+                      _userController.text.trim().isEmpty)
+                  ? null
+                  : _addUser,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF133B7C),
+                disabledBackgroundColor: Colors.grey.shade400,
                 padding: const EdgeInsets.symmetric(
                   vertical: 16,
                   horizontal: 20,
