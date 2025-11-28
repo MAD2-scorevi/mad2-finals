@@ -26,22 +26,26 @@ class FirebaseAuthService {
           .get();
 
       if (userDoc.exists) {
-        return {
-          'success': true,
-          'user': result.user,
-          'userData': userDoc.data(),
-        };
+        Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+
+        // Check if account is deactivated
+        String status = userData['status'] ?? 'active';
+        if (status == 'inactive') {
+          // Sign out the user immediately
+          await _auth.signOut();
+          return {
+            'success': false,
+            'message':
+                'This account has been deactivated. Please contact support.',
+          };
+        }
+
+        return {'success': true, 'user': result.user, 'userData': userData};
       } else {
-        return {
-          'success': false,
-          'message': 'User data not found',
-        };
+        return {'success': false, 'message': 'User data not found'};
       }
     } on FirebaseAuthException catch (e) {
-      return {
-        'success': false,
-        'message': _getErrorMessage(e.code),
-      };
+      return {'success': false, 'message': _getErrorMessage(e.code)};
     } catch (e) {
       return {
         'success': false,
@@ -85,10 +89,7 @@ class FirebaseAuthService {
         'message': 'Account created successfully',
       };
     } on FirebaseAuthException catch (e) {
-      return {
-        'success': false,
-        'message': _getErrorMessage(e.code),
-      };
+      return {'success': false, 'message': _getErrorMessage(e.code)};
     } catch (e) {
       return {
         'success': false,
@@ -105,7 +106,10 @@ class FirebaseAuthService {
   // Get user data from Firestore
   Future<Map<String, dynamic>?> getUserData(String uid) async {
     try {
-      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
+      DocumentSnapshot doc = await _firestore
+          .collection('users')
+          .doc(uid)
+          .get();
       if (doc.exists) {
         return doc.data() as Map<String, dynamic>?;
       }
@@ -118,7 +122,10 @@ class FirebaseAuthService {
   // Get user role
   Future<String?> getUserRole(String uid) async {
     try {
-      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
+      DocumentSnapshot doc = await _firestore
+          .collection('users')
+          .doc(uid)
+          .get();
       if (doc.exists) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
         return data['role'];
