@@ -433,7 +433,7 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: _selectedCategory,
+            initialValue: _selectedCategory,
             isExpanded: true,
             decoration: InputDecoration(
               filled: true,
@@ -486,7 +486,7 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
         const SizedBox(width: 12),
         Expanded(
           child: DropdownButtonFormField<String>(
-            value: _selectedCategory,
+            initialValue: _selectedCategory,
             isExpanded: true,
             decoration: InputDecoration(
               filled: true,

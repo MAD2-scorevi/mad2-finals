@@ -588,6 +588,29 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
           ],
         ),
+        const SizedBox(height: 12),
+        // Email permanence warning for admins
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            border: Border.all(color: Colors.blue.shade200),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline, color: Colors.blue.shade700, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  "Note: Email addresses are permanent in Firebase and cannot be changed. Deactivating a user marks them as inactive but preserves their Firebase Auth record.",
+                  style: TextStyle(fontSize: 11, color: Colors.blue.shade900),
+                ),
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 20),
 
         StreamBuilder<List<UserManageable>>(

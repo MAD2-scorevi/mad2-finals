@@ -30,9 +30,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 45),
-              decoration: const BoxDecoration(
-                color: Color(0xFF0F3360),
-              ),
+              decoration: const BoxDecoration(color: Color(0xFF0F3360)),
               child: const Column(
                 children: [
                   Text(
@@ -46,10 +44,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   SizedBox(height: 8),
                   Text(
                     "Makerlab Electronics Philippines",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.white, fontSize: 14),
                   ),
                 ],
               ),
@@ -83,6 +78,36 @@ class _RegistrationPageState extends State<RegistrationPage> {
             TextField(
               controller: emailController,
               decoration: _inputDecoration("juan@example.com"),
+            ),
+            const SizedBox(height: 8),
+            // Email warning
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                border: Border.all(color: Colors.orange.shade300),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orange.shade700,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "Important: Your email address is permanent and cannot be changed after registration. Please double-check before proceeding.",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange.shade900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 20),
 
@@ -154,7 +179,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 );
                 if (pickedDate != null) {
                   dobController.text =
-                  "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
+                      "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
                 }
               },
               decoration: _inputDecoration("dd/mm/yyyy"),
@@ -200,10 +225,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 },
                 child: const Text(
                   "Back to Login",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF0F3360),
-                  ),
+                  style: TextStyle(fontSize: 16, color: Color(0xFF0F3360)),
                 ),
               ),
             ),
@@ -229,8 +251,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
     final dob = dobController.text.trim();
 
     // Validation
-    if (fullName.isEmpty || email.isEmpty || password.isEmpty ||
-        phone.isEmpty || address.isEmpty || dob.isEmpty) {
+    if (fullName.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        phone.isEmpty ||
+        address.isEmpty ||
+        dob.isEmpty) {
       _showSnackBar('Please fill in all fields');
       return;
     }
@@ -278,10 +304,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 2),
-      ),
+      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
     );
   }
 

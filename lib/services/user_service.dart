@@ -127,7 +127,7 @@ class UserService {
       print('ADD USER: Signed out new user');
 
       // Re-authenticate as admin
-      print('ADD USER: Re-authenticating admin ${adminEmail}');
+      print('ADD USER: Re-authenticating admin $adminEmail');
       await _auth.signInWithEmailAndPassword(
         email: adminEmail,
         password: adminPassword,
