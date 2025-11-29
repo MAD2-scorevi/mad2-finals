@@ -8,6 +8,7 @@ import 'inventory_management_page.dart';
 import 'services/activity_service.dart';
 import 'services/inventory_service.dart';
 import 'services/firebase_auth_service.dart';
+import 'package:frontend3/services/category_service.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -18,6 +19,8 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   int selectedTab = 0;
+  //variable to store the count
+  int categoryCount = 0;
   final ActivityService _activityService = ActivityService();
   final InventoryService _inventoryService = InventoryService();
   final UserService _userService = UserService();
@@ -41,6 +44,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
   void initState() {
     super.initState();
     _userController.addListener(_validateUserEmail);
+    loadCounts(); // calling the function
+  }
+
+  // Keep this function definition here!
+  void loadCounts() async {
+    final service = CategoryService();
+    int count = await service.getCategoryCount();
+
+    setState(() {
+      categoryCount = count;
+    });
   }
 
   @override
@@ -591,7 +605,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
                 _statCard(
                   title: "Categories",
-                  value: categories.toString(),
+                  value: categoryCount.toString(), // <--- UPDATED HERE
                   icon: Icons.category_rounded,
                 ),
               ],
