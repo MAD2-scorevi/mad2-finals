@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'services/inventory_service.dart';
 import 'services/activity_service.dart';
+import 'services/category_service.dart';
 
 class InventoryManagementPage extends StatefulWidget {
   const InventoryManagementPage({super.key});
@@ -14,6 +15,7 @@ class InventoryManagementPage extends StatefulWidget {
 class _InventoryManagementPageState extends State<InventoryManagementPage> {
   final InventoryService _inventoryService = InventoryService();
   final ActivityService _activityService = ActivityService();
+  final CategoryService _categoryService = CategoryService();
   String _searchQuery = '';
   String _selectedCategory = 'All';
 
@@ -329,16 +331,18 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
     );
   }
 
-  void _showCategoriesDialog(List<InventoryItem> items) {
-    final categories = items.map((item) => item.category).toSet().toList()
-      ..sort();
+  void _showCategoriesDialog(List<InventoryItem> items) async {
+    final categories = await _categoryService.getCategories();
     final categoryStats = <String, int>{};
 
     for (var category in categories) {
-      categoryStats[category] = items
-          .where((item) => item.category == category)
+      final categoryName = category['name'] as String;
+      categoryStats[categoryName] = items
+          .where((item) => item.category == categoryName)
           .length;
     }
+
+    if (!mounted) return;
 
     showDialog(
       context: context,
@@ -364,12 +368,13 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
                   itemCount: categories.length,
                   itemBuilder: (context, index) {
                     final category = categories[index];
-                    final count = categoryStats[category] ?? 0;
+                    final categoryName = category['name'] as String;
+                    final count = categoryStats[categoryName] ?? 0;
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: Colors.green.withOpacity(0.1),
+                          backgroundColor: Colors.green.withValues(alpha: 0.1),
                           child: Text(
                             count.toString(),
                             style: const TextStyle(
@@ -379,7 +384,7 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
                           ),
                         ),
                         title: Text(
-                          category,
+                          categoryName,
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                         subtitle: Text('$count products'),
@@ -387,7 +392,7 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
                         onTap: () {
                           Navigator.pop(context);
                           setState(() {
-                            _selectedCategory = category;
+                            _selectedCategory = categoryName;
                           });
                         },
                       ),
@@ -406,112 +411,124 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
   }
 
   Widget _buildSearchAndFilter(List<InventoryItem> items, bool isMobile) {
-    final categories = [
-      'All',
-      ...items.map((item) => item.category).toSet().toList()..sort(),
-    ];
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _categoryService.categoriesStream,
+      builder: (context, categorySnapshot) {
+        final categoryList = categorySnapshot.data ?? [];
+        final categories = [
+          'All',
+          ...categoryList.map((cat) => cat['name'] as String).toList()..sort(),
+        ];
 
-    if (isMobile) {
-      return Column(
-        children: [
-          TextField(
-            onChanged: (value) => setState(() => _searchQuery = value),
-            decoration: InputDecoration(
-              hintText: 'Search products...',
-              prefixIcon: const Icon(Icons.search, color: Color(0xFF133B7C)),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+        if (isMobile) {
+          return Column(
+            children: [
+              TextField(
+                onChanged: (value) => setState(() => _searchQuery = value),
+                decoration: InputDecoration(
+                  hintText: 'Search products...',
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: Color(0xFF133B7C),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 16,
+                  ),
+                ),
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 16,
-                horizontal: 16,
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _selectedCategory,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 16,
+                  ),
+                ),
+                items: categories.map((category) {
+                  return DropdownMenuItem(
+                    value: category,
+                    child: Text(category, overflow: TextOverflow.ellipsis),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() => _selectedCategory = value ?? 'All');
+                },
               ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _selectedCategory,
-            isExpanded: true,
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 16,
-              ),
-            ),
-            items: categories.map((category) {
-              return DropdownMenuItem(
-                value: category,
-                child: Text(category, overflow: TextOverflow.ellipsis),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() => _selectedCategory = value ?? 'All');
-            },
-          ),
-        ],
-      );
-    }
+            ],
+          );
+        }
 
-    return Row(
-      children: [
-        Expanded(
-          flex: 2,
-          child: TextField(
-            onChanged: (value) => setState(() => _searchQuery = value),
-            decoration: InputDecoration(
-              hintText: 'Search products...',
-              prefixIcon: const Icon(Icons.search, color: Color(0xFF133B7C)),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 16,
-                horizontal: 16,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: DropdownButtonFormField<String>(
-            initialValue: _selectedCategory,
-            isExpanded: true,
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 16,
+        return Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: TextField(
+                onChanged: (value) => setState(() => _searchQuery = value),
+                decoration: InputDecoration(
+                  hintText: 'Search products...',
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: Color(0xFF133B7C),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 16,
+                  ),
+                ),
               ),
             ),
-            items: categories.map((category) {
-              return DropdownMenuItem(
-                value: category,
-                child: Text(category, overflow: TextOverflow.ellipsis),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() => _selectedCategory = value ?? 'All');
-            },
-          ),
-        ),
-      ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                initialValue: _selectedCategory,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 16,
+                  ),
+                ),
+                items: categories.map((category) {
+                  return DropdownMenuItem(
+                    value: category,
+                    child: Text(category, overflow: TextOverflow.ellipsis),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() => _selectedCategory = value ?? 'All');
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -942,7 +959,7 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
   void _showAddItemModal(BuildContext context) {
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController();
-    final categoryController = TextEditingController();
+    String? selectedCategory;
     final priceController = TextEditingController();
     final stockController = TextEditingController();
     final descriptionController = TextEditingController();
@@ -950,156 +967,184 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.add_circle_outline, color: Color(0xFF133B7C)),
-            SizedBox(width: 10),
-            Text('Add New Product'),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+      builder: (context) => StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _categoryService.categoriesStream,
+        builder: (context, snapshot) {
+          final categories = snapshot.data ?? [];
+          final categoryNames =
+              categories.map((cat) => cat['name'] as String).toList()..sort();
+
+          // Wait for categories to load
+          if (!snapshot.hasData || categoryNames.isEmpty) {
+            return const AlertDialog(
+              content: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          return AlertDialog(
+            title: const Row(
               children: [
-                TextFormField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Product Name *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.inventory_2),
-                  ),
-                  validator: (value) =>
-                      value?.isEmpty ?? true ? 'Required' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: categoryController,
-                  decoration: const InputDecoration(
-                    labelText: 'Category *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.category),
-                  ),
-                  validator: (value) =>
-                      value?.isEmpty ?? true ? 'Required' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: priceController,
-                  decoration: const InputDecoration(
-                    labelText: 'Price *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.attach_money),
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                      RegExp(r'^\d+\.?\d{0,2}'),
-                    ),
-                  ],
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) return 'Required';
-                    if (double.tryParse(value!) == null) return 'Invalid price';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: stockController,
-                  decoration: const InputDecoration(
-                    labelText: 'Stock Quantity *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.storage),
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) return 'Required';
-                    if (int.tryParse(value!) == null) return 'Invalid quantity';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: thresholdController,
-                  decoration: const InputDecoration(
-                    labelText: 'Low Stock Threshold *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.warning_amber),
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) return 'Required';
-                    if (int.tryParse(value!) == null) return 'Invalid number';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.description),
-                  ),
-                  maxLines: 3,
-                  validator: (value) =>
-                      value?.isEmpty ?? true ? 'Required' : null,
-                ),
+                Icon(Icons.add_circle_outline, color: Color(0xFF133B7C)),
+                SizedBox(width: 10),
+                Text('Add New Product'),
               ],
             ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                final newItem = InventoryItem(
-                  id: _inventoryService.generateNewId(),
-                  name: nameController.text,
-                  category: categoryController.text,
-                  price: double.parse(priceController.text),
-                  stockQuantity: int.parse(stockController.text),
-                  description: descriptionController.text,
-                  lowStockThreshold: int.parse(thresholdController.text),
-                );
-
-                final success = await _inventoryService.addItem(newItem);
-                if (!mounted) return;
-                if (success) {
-                  // Log activity with details
-                  await _activityService.logInventoryAdded(
-                    newItem.name,
-                    quantity: newItem.stockQuantity,
-                    category: newItem.category,
-                    price: newItem.price,
-                  );
-
-                  Navigator.pop(context);
-                  setState(() {});
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${newItem.name} added successfully!'),
-                      backgroundColor: Colors.green,
+            content: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Product Name *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.inventory_2),
+                      ),
+                      validator: (value) =>
+                          value?.isEmpty ?? true ? 'Required' : null,
                     ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF133B7C),
-              foregroundColor: Colors.white,
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: selectedCategory,
+                      decoration: const InputDecoration(
+                        labelText: 'Category *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.category),
+                      ),
+                      items: categoryNames.map((category) {
+                        return DropdownMenuItem(
+                          value: category,
+                          child: Text(category),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        selectedCategory = value;
+                      },
+                      validator: (value) =>
+                          value == null ? 'Please select a category' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: priceController,
+                      decoration: const InputDecoration(
+                        labelText: 'Price *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.attach_money),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d+\.?\d{0,2}'),
+                        ),
+                      ],
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) return 'Required';
+                        if (double.tryParse(value!) == null)
+                          return 'Invalid price';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: stockController,
+                      decoration: const InputDecoration(
+                        labelText: 'Stock Quantity *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.storage),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) return 'Required';
+                        if (int.tryParse(value!) == null)
+                          return 'Invalid quantity';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: thresholdController,
+                      decoration: const InputDecoration(
+                        labelText: 'Low Stock Threshold *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.warning_amber),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) return 'Required';
+                        if (int.tryParse(value!) == null)
+                          return 'Invalid number';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: descriptionController,
+                      decoration: const InputDecoration(
+                        labelText: 'Description *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.description),
+                      ),
+                      maxLines: 3,
+                      validator: (value) =>
+                          value?.isEmpty ?? true ? 'Required' : null,
+                    ),
+                  ],
+                ),
+              ),
             ),
-            child: const Text('Add Product'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (formKey.currentState!.validate()) {
+                    final newItem = InventoryItem(
+                      id: _inventoryService.generateNewId(),
+                      name: nameController.text,
+                      category: selectedCategory!,
+                      price: double.parse(priceController.text),
+                      stockQuantity: int.parse(stockController.text),
+                      description: descriptionController.text,
+                      lowStockThreshold: int.parse(thresholdController.text),
+                    );
+
+                    final success = await _inventoryService.addItem(newItem);
+                    if (!mounted) return;
+                    if (success) {
+                      // Log activity with details
+                      await _activityService.logInventoryAdded(
+                        newItem.name,
+                        quantity: newItem.stockQuantity,
+                        category: newItem.category,
+                        price: newItem.price,
+                      );
+
+                      Navigator.pop(context);
+                      setState(() {});
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${newItem.name} added successfully!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF133B7C),
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Add Product'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -1107,7 +1152,7 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
   void _showEditItemModal(BuildContext context, InventoryItem item) {
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(text: item.name);
-    final categoryController = TextEditingController(text: item.category);
+    String? selectedCategory = item.category;
     final priceController = TextEditingController(text: item.price.toString());
     final stockController = TextEditingController(
       text: item.stockQuantity.toString(),
@@ -1120,204 +1165,239 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
     showDialog(
       context: context,
       barrierDismissible: false, // Prevent dismiss by tapping outside
-      builder: (dialogContext) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.edit, color: Colors.orange),
-            SizedBox(width: 10),
-            Text('Edit Product'),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+      builder: (dialogContext) => StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _categoryService.categoriesStream,
+        builder: (context, snapshot) {
+          final categories = snapshot.data ?? [];
+          final categoryNames =
+              categories.map((cat) => cat['name'] as String).toList()..sort();
+
+          // Wait for categories to load
+          if (!snapshot.hasData || categoryNames.isEmpty) {
+            return const AlertDialog(
+              content: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          // Ensure selectedCategory is in the list
+          if (!categoryNames.contains(selectedCategory)) {
+            selectedCategory = categoryNames.first;
+          }
+
+          return AlertDialog(
+            title: const Row(
               children: [
-                TextFormField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Product Name *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.inventory_2),
-                  ),
-                  validator: (value) =>
-                      value?.isEmpty ?? true ? 'Required' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: categoryController,
-                  decoration: const InputDecoration(
-                    labelText: 'Category *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.category),
-                  ),
-                  validator: (value) =>
-                      value?.isEmpty ?? true ? 'Required' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: priceController,
-                  decoration: const InputDecoration(
-                    labelText: 'Price *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.attach_money),
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                      RegExp(r'^\d+\.?\d{0,2}'),
-                    ),
-                  ],
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) return 'Required';
-                    if (double.tryParse(value!) == null) return 'Invalid price';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: stockController,
-                  decoration: const InputDecoration(
-                    labelText: 'Stock Quantity *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.storage),
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) return 'Required';
-                    if (int.tryParse(value!) == null) return 'Invalid quantity';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: thresholdController,
-                  decoration: const InputDecoration(
-                    labelText: 'Low Stock Threshold *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.warning_amber),
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) return 'Required';
-                    if (int.tryParse(value!) == null) return 'Invalid number';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.description),
-                  ),
-                  maxLines: 3,
-                  validator: (value) =>
-                      value?.isEmpty ?? true ? 'Required' : null,
-                ),
+                Icon(Icons.edit, color: Colors.orange),
+                SizedBox(width: 10),
+                Text('Edit Product'),
               ],
             ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                // Capture values BEFORE any async operations
-                final updatedName = nameController.text;
-                final updatedCategory = categoryController.text;
-                final updatedPrice = double.parse(priceController.text);
-                final updatedStock = int.parse(stockController.text);
-                final updatedDescription = descriptionController.text;
-                final updatedThreshold = int.parse(thresholdController.text);
-
-                // Capture the navigator before async operations
-                final navigator = Navigator.of(dialogContext);
-                final messenger = ScaffoldMessenger.of(context);
-
-                try {
-                  final updatedItem = item.copyWith(
-                    name: updatedName,
-                    category: updatedCategory,
-                    price: updatedPrice,
-                    stockQuantity: updatedStock,
-                    description: updatedDescription,
-                    lowStockThreshold: updatedThreshold,
-                  );
-
-                  final success = await _inventoryService.updateItem(
-                    item.id,
-                    updatedItem,
-                  );
-
-                  // Close dialog
-                  navigator.pop();
-
-                  if (success) {
-                    // Build changes map for activity log
-                    final changes = <String, dynamic>{};
-                    if (updatedItem.stockQuantity != item.stockQuantity) {
-                      changes['stockQuantity'] = updatedItem.stockQuantity;
-                    }
-                    if (updatedItem.price != item.price) {
-                      changes['price'] = updatedItem.price;
-                    }
-                    if (updatedItem.category != item.category) {
-                      changes['category'] = updatedItem.category;
-                    }
-
-                    await _activityService.logInventoryUpdated(
-                      updatedItem.name,
-                      changes.isNotEmpty ? changes : {'action': 'details'},
-                    );
-
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '${updatedItem.name} updated successfully!',
-                        ),
-                        backgroundColor: Colors.green,
+            content: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Product Name *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.inventory_2),
                       ),
-                    );
-                  } else {
-                    messenger.showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Failed to update product. Please try again.',
-                        ),
-                        backgroundColor: Colors.red,
-                        duration: Duration(seconds: 5),
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  navigator.pop();
-                  print('UPDATE ERROR IN UI: $e');
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text('Update failed: ${e.toString()}'),
-                      backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 5),
+                      validator: (value) =>
+                          value?.isEmpty ?? true ? 'Required' : null,
                     ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: selectedCategory,
+                      decoration: const InputDecoration(
+                        labelText: 'Category *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.category),
+                      ),
+                      items: categoryNames.map((category) {
+                        return DropdownMenuItem(
+                          value: category,
+                          child: Text(category),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        selectedCategory = value;
+                      },
+                      validator: (value) =>
+                          value == null ? 'Please select a category' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: priceController,
+                      decoration: const InputDecoration(
+                        labelText: 'Price *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.attach_money),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d+\.?\d{0,2}'),
+                        ),
+                      ],
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) return 'Required';
+                        if (double.tryParse(value!) == null)
+                          return 'Invalid price';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: stockController,
+                      decoration: const InputDecoration(
+                        labelText: 'Stock Quantity *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.storage),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) return 'Required';
+                        if (int.tryParse(value!) == null)
+                          return 'Invalid quantity';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: thresholdController,
+                      decoration: const InputDecoration(
+                        labelText: 'Low Stock Threshold *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.warning_amber),
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) return 'Required';
+                        if (int.tryParse(value!) == null)
+                          return 'Invalid number';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: descriptionController,
+                      decoration: const InputDecoration(
+                        labelText: 'Description *',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.description),
+                      ),
+                      maxLines: 3,
+                      validator: (value) =>
+                          value?.isEmpty ?? true ? 'Required' : null,
+                    ),
+                  ],
+                ),
+              ),
             ),
-            child: const Text('Update'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (formKey.currentState!.validate()) {
+                    // Capture values BEFORE any async operations
+                    final updatedName = nameController.text;
+                    final updatedCategory = selectedCategory!;
+                    final updatedPrice = double.parse(priceController.text);
+                    final updatedStock = int.parse(stockController.text);
+                    final updatedDescription = descriptionController.text;
+                    final updatedThreshold = int.parse(
+                      thresholdController.text,
+                    );
+
+                    // Capture the navigator before async operations
+                    final navigator = Navigator.of(dialogContext);
+                    final messenger = ScaffoldMessenger.of(context);
+
+                    try {
+                      final updatedItem = item.copyWith(
+                        name: updatedName,
+                        category: updatedCategory,
+                        price: updatedPrice,
+                        stockQuantity: updatedStock,
+                        description: updatedDescription,
+                        lowStockThreshold: updatedThreshold,
+                      );
+
+                      final success = await _inventoryService.updateItem(
+                        item.id,
+                        updatedItem,
+                      );
+
+                      // Close dialog
+                      navigator.pop();
+
+                      if (success) {
+                        // Build changes map for activity log
+                        final changes = <String, dynamic>{};
+                        if (updatedItem.stockQuantity != item.stockQuantity) {
+                          changes['stockQuantity'] = updatedItem.stockQuantity;
+                        }
+                        if (updatedItem.price != item.price) {
+                          changes['price'] = updatedItem.price;
+                        }
+                        if (updatedItem.category != item.category) {
+                          changes['category'] = updatedItem.category;
+                        }
+
+                        await _activityService.logInventoryUpdated(
+                          updatedItem.name,
+                          changes.isNotEmpty ? changes : {'action': 'details'},
+                        );
+
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              '${updatedItem.name} updated successfully!',
+                            ),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      } else {
+                        messenger.showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Failed to update product. Please try again.',
+                            ),
+                            backgroundColor: Colors.red,
+                            duration: Duration(seconds: 5),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      navigator.pop();
+                      print('UPDATE ERROR IN UI: $e');
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text('Update failed: ${e.toString()}'),
+                          backgroundColor: Colors.red,
+                          duration: const Duration(seconds: 5),
+                        ),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Update'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

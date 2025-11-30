@@ -318,4 +318,29 @@ class ActivityService {
       metadata: {'email': email, if (userName != null) 'userName': userName},
     );
   }
+
+  // Category Management Activities
+  Future<void> logCategoryAdded(String categoryName) async {
+    await logActivity(
+      activityType: 'category_added',
+      description: 'Added new category: $categoryName',
+      metadata: {'categoryName': categoryName},
+    );
+  }
+
+  Future<void> logCategoryUpdated(String oldName, String newName) async {
+    await logActivity(
+      activityType: 'category_updated',
+      description: 'Updated category from "$oldName" to "$newName"',
+      metadata: {'oldName': oldName, 'newName': newName},
+    );
+  }
+
+  Future<void> logCategoryDeleted(String categoryName) async {
+    await logActivity(
+      activityType: 'category_deleted',
+      description: 'Deleted category: $categoryName',
+      metadata: {'categoryName': categoryName},
+    );
+  }
 }
