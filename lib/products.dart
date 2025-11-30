@@ -698,18 +698,14 @@ class _ProductsPageState extends State<ProductsPage> {
           (i) => i.id == item.productId,
         );
         final newStock = inventoryItem.stockQuantity - item.quantity;
-        print(
-          'Updating ${inventoryItem.name}: ${inventoryItem.stockQuantity} -> $newStock',
-        );
         final updatedItem = inventoryItem.copyWith(
           stockQuantity: newStock,
           lastUpdated: DateTime.now(),
         );
-        final success = await _inventoryService.updateItem(
+        await _inventoryService.updateItem(
           item.productId,
           updatedItem,
         );
-        print('Update result for ${inventoryItem.name}: $success');
       }
 
       // Log activity with order details

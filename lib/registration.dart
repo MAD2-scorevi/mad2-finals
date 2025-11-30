@@ -84,15 +84,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
     _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
       if (!mounted) return;
 
-      print('🔍 Validating email: $email');
-
       try {
         // Check both Firebase Auth AND Firestore for complete coverage
 
         // 1. Check Firebase Auth first (requires sign-in methods)
         final signInMethods = await FirebaseAuth.instance
             .fetchSignInMethodsForEmail(email);
-        print('📧 Firebase Auth methods: $signInMethods');
 
         // 2. Check Firestore users collection (catches users created directly)
         QuerySnapshot? firestoreCheck;
@@ -102,9 +99,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
               .where('email', isEqualTo: email)
               .limit(1)
               .get();
-          print('📊 Firestore documents: ${firestoreCheck.docs.length}');
         } catch (firestoreError) {
-          print('⚠️ Firestore check failed (no permission): $firestoreError');
           // Continue - we'll rely on Firebase Auth result
         }
 
@@ -115,15 +110,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
         final existsInFirestore = (firestoreCheck?.docs.isNotEmpty ?? false);
 
         if (existsInAuth || existsInFirestore) {
-          print(
-            '❌ Email already registered: $email (Auth: $existsInAuth, Firestore: $existsInFirestore)',
-          );
           setState(() {
             _isCheckingEmail = false;
             _emailError = '❌ This email is already registered';
           });
         } else {
-          print('✅ Email available: $email');
           // Don't update UI for success - just clear error if exists
           if (_emailError != null || _isCheckingEmail) {
             setState(() {
@@ -133,7 +124,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
           }
         }
       } on FirebaseAuthException catch (e) {
-        print('⚠️ Firebase Auth error: ${e.code} - ${e.message}');
 
         if (!mounted) return;
 
@@ -150,7 +140,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
           });
         }
       } catch (e) {
-        print('❌ Unexpected error: $e');
 
         if (!mounted) return;
 

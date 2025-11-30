@@ -1305,7 +1305,6 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
                       }
                     } catch (e) {
                       navigator.pop();
-                      print('UPDATE ERROR IN UI: $e');
                       messenger.showSnackBar(
                         SnackBar(
                           content: Text('Update failed: ${e.toString()}'),
@@ -1418,7 +1417,6 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
                 }
               } catch (e) {
                 navigator.pop();
-                print('DELETE ERROR IN UI: $e');
                 messenger.showSnackBar(
                   SnackBar(
                     content: Text('Delete failed: ${e.toString()}'),

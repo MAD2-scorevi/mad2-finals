@@ -109,7 +109,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     _debounceUserTimer = Timer(const Duration(milliseconds: 500), () async {
       if (!mounted) return;
 
-      print('🔍 Admin validating email: $email');
 
       try {
         // Check both Firebase Auth AND Firestore for complete coverage
@@ -118,7 +117,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
         // 1. Check Firebase Auth
         final signInMethods = await FirebaseAuth.instance
             .fetchSignInMethodsForEmail(email);
-        print('📧 Admin - Firebase Auth methods: $signInMethods');
 
         // 2. Check Firestore users collection
         final firestoreCheck = await FirebaseFirestore.instance
@@ -126,7 +124,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
             .where('email', isEqualTo: email)
             .limit(1)
             .get();
-        print('📊 Admin - Firestore documents: ${firestoreCheck.docs.length}');
 
         if (!mounted) return;
 
@@ -135,15 +132,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
         final existsInFirestore = firestoreCheck.docs.isNotEmpty;
 
         if (existsInAuth || existsInFirestore) {
-          print(
-            '❌ Admin: Email already registered: $email (Auth: $existsInAuth, Firestore: $existsInFirestore)',
-          );
           setState(() {
             _isCheckingUserEmail = false;
             _userEmailError = '❌ Email already registered';
           });
         } else {
-          print('✅ Admin: Email available: $email');
           // Don't update UI for success - just clear error if exists
           if (_userEmailError != null || _isCheckingUserEmail) {
             setState(() {
@@ -153,7 +146,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
           }
         }
       } on FirebaseAuthException catch (e) {
-        print('⚠️ Admin Firebase Auth error: ${e.code} - ${e.message}');
 
         if (!mounted) return;
 
@@ -169,7 +161,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
           });
         }
       } catch (e) {
-        print('❌ Admin unexpected error: $e');
 
         if (!mounted) return;
 
@@ -1154,11 +1145,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Future<Map<String, String>?> _getAdminCredentials() async {
     // Check if we have cached credentials (valid for entire session)
     if (_cachedCredentials != null) {
-      print('Using cached credentials from this session');
       return _cachedCredentials;
     }
 
-    print('No cached credentials, requesting admin confirmation');
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
 
@@ -1247,7 +1236,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
       // Cache credentials for entire session
       _cachedCredentials = credentials;
-      print('Credentials cached for session (until logout)');
 
       return credentials;
     }

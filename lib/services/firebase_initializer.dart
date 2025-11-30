@@ -8,7 +8,6 @@ class FirebaseInitializer {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<void> initializeSampleUsers() async {
-    print('Starting Firebase initialization...');
 
     // Sample users data
     final sampleUsers = [
@@ -43,7 +42,6 @@ class FirebaseInitializer {
 
     for (var userData in sampleUsers) {
       try {
-        print('Creating user: ${userData['email']}...');
 
         // Check if user already exists
         final existingUsers = await _auth.fetchSignInMethodsForEmail(
@@ -51,7 +49,6 @@ class FirebaseInitializer {
         );
 
         if (existingUsers.isNotEmpty) {
-          print('User ${userData['email']} already exists. Skipping...');
           continue;
         }
 
@@ -72,22 +69,10 @@ class FirebaseInitializer {
           'role': userData['role'],
           'createdAt': FieldValue.serverTimestamp(),
         });
-
-        print('✓ Successfully created: ${userData['email']} (${userData['role']})');
       } catch (e) {
-        print('✗ Error creating ${userData['email']}: $e');
+          //Removed Print statement here. Catch does nothing other than that
       }
     }
-
-    print('\nFirebase initialization completed!');
-    print('\nSample Users:');
-    print('─────────────────────────────────────────────────');
-    print('User Role  | Email                    | Password');
-    print('─────────────────────────────────────────────────');
-    print('User       | sample.user@gmail.com    | sampleuser');
-    print('Admin      | sample.admin@gmail.com   | sampleadmin');
-    print('Owner      | sample.owner@gmail.com   | sampleowner');
-    print('─────────────────────────────────────────────────');
 
     // Sign out after initialization
     await _auth.signOut();

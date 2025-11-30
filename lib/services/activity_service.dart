@@ -106,7 +106,7 @@ class ActivityService {
         'timestamp': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      print('Error logging activity: $e');
+      //Removed Print statement here. Catch does nothing other than that
     }
   }
 

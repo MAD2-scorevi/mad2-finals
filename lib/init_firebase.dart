@@ -13,24 +13,13 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    print('\n══════════════════════════════════════════════════');
-    print('  Firebase Database Initialization Script');
-    print('══════════════════════════════════════════════════\n');
 
     final initializer = FirebaseInitializer();
     await initializer.initializeSampleUsers();
 
-    print('\n══════════════════════════════════════════════════');
-    print('  Initialization Complete!');
-    print('══════════════════════════════════════════════════\n');
-
-    print('Next Steps:');
-    print('1. Set up Firestore Security Rules in Firebase Console');
-    print('2. Copy the security rules from firebase_initializer.dart');
-    print('3. Test login with the sample accounts\n');
 
   } catch (e) {
-    print('Error initializing Firebase: $e');
+    //Removed Print statement here. Catch does nothing other than that
   }
 }
 

@@ -39,8 +39,6 @@ Future<void> populateFirestoreInventory(BuildContext context) async {
         duration: Duration(seconds: 3),
       ),
     );
-
-    debugPrint('Firestore inventory collection populated successfully!');
   } catch (e) {
     // Close loading dialog if open
     Navigator.pop(context);
@@ -53,7 +51,5 @@ Future<void> populateFirestoreInventory(BuildContext context) async {
         duration: const Duration(seconds: 5),
       ),
     );
-
-    debugPrint('Error populating Firestore: $e');
   }
 }

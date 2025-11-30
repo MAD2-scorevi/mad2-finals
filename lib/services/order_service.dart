@@ -134,7 +134,6 @@ class OrderService {
       final docRef = await _firestore.collection('orders').add(orderData);
       return docRef.id;
     } catch (e) {
-      print('Error creating order: $e');
       return null;
     }
   }
@@ -167,7 +166,6 @@ class OrderService {
       }
       return null;
     } catch (e) {
-      print('Error fetching order: $e');
       return null;
     }
   }
@@ -180,7 +178,6 @@ class OrderService {
       });
       return true;
     } catch (e) {
-      print('Error updating order status: $e');
       return false;
     }
   }
@@ -222,7 +219,6 @@ class OrderService {
         'completedOrders': completedOrders,
       };
     } catch (e) {
-      print('Error fetching order stats: $e');
       return {
         'totalOrders': 0,
         'totalRevenue': 0.0,

@@ -44,7 +44,6 @@ class _ManageAdminsPageState extends State<ManageAdminsPage> {
         });
       }
     } catch (e) {
-      print('Error loading admins: \$e');
       if (mounted) setState(() => _isLoading = false);
     }
   }

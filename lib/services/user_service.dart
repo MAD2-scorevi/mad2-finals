@@ -91,15 +91,12 @@ class UserService {
     String password = 'Welcome123!',
   }) async {
     try {
-      print('ADD USER: Creating Firebase Auth account for $email');
 
       // Store current admin user
       final currentAdmin = _auth.currentUser;
       if (currentAdmin == null) {
         throw StateError('No admin is currently signed in');
       }
-
-      print('ADD USER: Current admin: ${currentAdmin.email}');
 
       // Create Firebase Auth user (this will temporarily switch the auth context)
       final userCredential = await _auth.createUserWithEmailAndPassword(
@@ -108,7 +105,6 @@ class UserService {
       );
 
       final newUserId = userCredential.user!.uid;
-      print('ADD USER: Created user with UID: $newUserId');
 
       // Create Firestore document with the Auth UID
       await _firestore.collection('users').doc(newUserId).set({
@@ -120,23 +116,18 @@ class UserService {
         'status': 'active',
         'createdAt': FieldValue.serverTimestamp(),
       });
-      print('ADD USER: Created Firestore document');
 
       // Sign out the newly created user
       await _auth.signOut();
-      print('ADD USER: Signed out new user');
 
       // Re-authenticate as admin
-      print('ADD USER: Re-authenticating admin $adminEmail');
       await _auth.signInWithEmailAndPassword(
         email: adminEmail,
         password: adminPassword,
       );
-      print('ADD USER: Admin re-authenticated successfully');
 
       return newUserId;
     } catch (e) {
-      print('ADD USER ERROR: $e');
       // Try to sign out and re-auth admin in case of error
       try {
         await _auth.signOut();
@@ -144,11 +135,8 @@ class UserService {
           email: adminEmail,
           password: adminPassword,
         );
-        print('ADD USER: Admin re-authenticated after error');
       } catch (authError) {
-        print(
-          'ADD USER: Failed to re-authenticate admin after error: $authError',
-        );
+        //Removed Print statement here. Catch does nothing other than that
       }
       throw StateError("Error adding user $email: $e");
     }
@@ -164,56 +152,40 @@ class UserService {
     required String adminPassword,
   }) async {
     try {
-      print('DEACTIVATE: Starting deactivation for user $id');
-      print('DEACTIVATE: Admin email provided: $adminEmail');
 
       // Get current user
       final currentUser = _auth.currentUser;
       if (currentUser == null) {
-        print('DEACTIVATE ERROR: No user is currently signed in');
         throw StateError('No user is currently signed in');
       }
 
-      print('DEACTIVATE: Current user email: ${currentUser.email}');
-
       // Verify credentials match current user (case-insensitive)
       if (currentUser.email?.toLowerCase() != adminEmail.toLowerCase()) {
-        print(
-          'DEACTIVATE ERROR: Email mismatch - current: ${currentUser.email}, provided: $adminEmail',
-        );
         throw StateError('Provided credentials do not match current user');
       }
 
       // Note: Skipping reauthentication as it times out on Windows desktop
       // The admin is already authenticated and we trust the current session
-      print('DEACTIVATE: Admin is already authenticated, proceeding...');
 
       // Check if user has admin role
-      print('DEACTIVATE: Checking admin role...');
       final adminDoc = await _firestore
           .collection('users')
           .doc(currentUser.uid)
           .get();
       final role = adminDoc.data()?['role'];
-      print('DEACTIVATE: User role is: $role');
 
       if (role != 'admin' && role != 'product_owner') {
-        print('DEACTIVATE ERROR: Insufficient permissions - role: $role');
         throw StateError(
           'Access denied: Only admin or product owner can perform this action',
         );
       }
 
       // Mark as inactive in Firestore
-      print('DEACTIVATE: Updating user status to inactive...');
       await _firestore.collection('users').doc(id).update({
         'status': 'inactive',
         'deactivatedAt': FieldValue.serverTimestamp(),
       });
-      print('DEACTIVATE: Successfully deactivated user $id');
-    } catch (e, stackTrace) {
-      print('DEACTIVATE FAILED: $e');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
       throw StateError("Error deactivating user $id: $e");
     }
   }
@@ -238,52 +210,36 @@ class UserService {
     required String adminPassword,
   }) async {
     try {
-      print('UPDATE PROFILE: Starting update for user $id');
-      print('UPDATE PROFILE: Admin email provided: $adminEmail');
 
       // Get current user
       final currentUser = _auth.currentUser;
       if (currentUser == null) {
-        print('UPDATE PROFILE ERROR: No user is currently signed in');
         throw StateError('No user is currently signed in');
       }
 
-      print('UPDATE PROFILE: Current user email: ${currentUser.email}');
-
       // Verify credentials match current user (case-insensitive)
       if (currentUser.email?.toLowerCase() != adminEmail.toLowerCase()) {
-        print(
-          'UPDATE PROFILE ERROR: Email mismatch - current: ${currentUser.email}, provided: $adminEmail',
-        );
         throw StateError('Provided credentials do not match current user');
       }
 
       // Note: Skipping reauthentication as it times out on Windows desktop
       // The admin is already authenticated and we trust the current session
-      print('UPDATE PROFILE: Admin is already authenticated, proceeding...');
 
       // Check if user has admin role
-      print('UPDATE PROFILE: Checking admin role...');
       final adminDoc = await _firestore
           .collection('users')
           .doc(currentUser.uid)
           .get();
       final role = adminDoc.data()?['role'];
-      print('UPDATE PROFILE: User role is: $role');
 
       if (role != 'admin' && role != 'product_owner') {
-        print('UPDATE PROFILE ERROR: Insufficient permissions - role: $role');
         throw StateError(
           'Access denied: Only admin or product owner can perform this action',
         );
       }
 
-      print('UPDATE PROFILE: Updating user profile...');
       await _firestore.collection('users').doc(id).update(updates);
-      print('UPDATE PROFILE: Successfully updated user $id');
-    } catch (e, stackTrace) {
-      print('UPDATE PROFILE FAILED: $e');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
       throw StateError("Error updating user $id: $e");
     }
   }

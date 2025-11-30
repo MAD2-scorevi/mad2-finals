@@ -196,14 +196,12 @@ class InventoryService extends ChangeNotifier {
           data['id'] = doc.id; // Ensure document ID is included
           _items.add(InventoryItem.fromJson(data));
         } catch (e) {
-          debugPrint('Error parsing item ${doc.id}: $e');
+          //Removed debugPrint statement here. Catch does nothing other than that
         }
       }
 
-      debugPrint('Loaded ${_items.length} items from Firestore');
     } catch (e) {
-      _error = 'Failed to load inventory: $e';
-      debugPrint(_error);
+      //Removed debugPrint statement/s here. Catch does nothing other than that
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -314,12 +312,9 @@ class InventoryService extends ChangeNotifier {
       }
       await batch.commit();
 
-      debugPrint('Successfully added ${mockItems.length} items to Firestore');
-
       // Reload items
       await loadItems();
     } catch (e) {
-      debugPrint('Error initializing mock data: $e');
       rethrow;
     }
   }
@@ -365,7 +360,6 @@ class InventoryService extends ChangeNotifier {
     try {
       // Check if ID already exists
       if (_items.any((i) => i.id == item.id)) {
-        debugPrint('Item with ID ${item.id} already exists');
         return false;
       }
 
@@ -378,10 +372,8 @@ class InventoryService extends ChangeNotifier {
       // Add to local list
       _items.add(item);
       notifyListeners();
-      debugPrint('Added item: ${item.name}');
       return true;
     } catch (e) {
-      debugPrint('Error adding item: $e');
       return false;
     }
   }
@@ -389,7 +381,6 @@ class InventoryService extends ChangeNotifier {
   /// Update an existing inventory item
   Future<bool> updateItem(String id, InventoryItem updatedItem) async {
     try {
-      print('UPDATE: Attempting to update item with id: $id');
 
       // Check if the document exists in Firestore
       final docSnapshot = await _firestore
@@ -398,8 +389,6 @@ class InventoryService extends ChangeNotifier {
           .get();
 
       if (!docSnapshot.exists) {
-        debugPrint('Item with ID $id not found in Firestore');
-        print('ERROR: Document does not exist in Firestore! ID: $id');
         return false;
       }
 
@@ -416,17 +405,10 @@ class InventoryService extends ChangeNotifier {
           .collection(_collectionName)
           .doc(id)
           .set(updateData, SetOptions(merge: true));
-
-      debugPrint('✓ Successfully updated item: ${updatedItem.name}');
-      print('SUCCESS: Item updated in Firestore with ID: $id');
       return true;
-    } catch (e, stackTrace) {
-      debugPrint('Error updating item: $e');
-      debugPrint('Stack trace: $stackTrace');
-      print('FIRESTORE UPDATE ERROR: $e');
-      print('Error details: ${e.toString()}');
+    } catch (e) {
       if (e.toString().contains('FirebaseException')) {
-        print('Firebase error code: ${e.toString()}');
+        //Removed Print statement here. Catch does nothing other than that
       }
       return false;
     }
@@ -435,7 +417,6 @@ class InventoryService extends ChangeNotifier {
   /// Remove an inventory item
   Future<bool> removeItem(String id) async {
     try {
-      print('DELETE: Attempting to delete item with id: $id');
 
       // Check if the document exists in Firestore
       final docSnapshot = await _firestore
@@ -444,8 +425,6 @@ class InventoryService extends ChangeNotifier {
           .get();
 
       if (!docSnapshot.exists) {
-        debugPrint('Item with ID $id not found in Firestore');
-        print('ERROR: Document does not exist in Firestore! ID: $id');
         return false;
       }
 
@@ -454,16 +433,10 @@ class InventoryService extends ChangeNotifier {
       // Delete from Firestore
       await _firestore.collection(_collectionName).doc(id).delete();
 
-      debugPrint('✓ Successfully deleted item: $itemName');
-      print('SUCCESS: Item deleted from Firestore with ID: $id');
       return true;
-    } catch (e, stackTrace) {
-      debugPrint('Error removing item: $e');
-      debugPrint('Stack trace: $stackTrace');
-      print('FIRESTORE DELETE ERROR: $e');
-      print('Error details: ${e.toString()}');
+    } catch (e) {
       if (e.toString().contains('FirebaseException')) {
-        print('Firebase error code: ${e.toString()}');
+        //Removed Print statement here. Catch does nothing other than that
       }
       return false;
     }
@@ -474,7 +447,6 @@ class InventoryService extends ChangeNotifier {
     final item = getItemById(id);
 
     if (item == null) {
-      debugPrint('Item with ID $id not found');
       return false;
     }
 
@@ -489,7 +461,6 @@ class InventoryService extends ChangeNotifier {
     final item = getItemById(id);
 
     if (item == null) {
-      debugPrint('Item with ID $id not found');
       return false;
     }
 
@@ -501,13 +472,12 @@ class InventoryService extends ChangeNotifier {
     final item = getItemById(id);
 
     if (item == null) {
-      debugPrint('Item with ID $id not found');
       return false;
     }
 
     final newQuantity = item.stockQuantity - amount;
     if (newQuantity < 0) {
-      debugPrint('Cannot decrease stock below 0');
+      //Cannot decrease stock below 0
       return false;
     }
 
@@ -571,9 +541,9 @@ class InventoryService extends ChangeNotifier {
 
       _items.clear();
       notifyListeners();
-      debugPrint('All inventory items cleared');
     } catch (e) {
-      debugPrint('Error clearing inventory: $e');
+      //Removed debugPrint statement here. Catch does nothing other than that 
+      //Error clearing inventory: $e
     }
   }
 }

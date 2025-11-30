@@ -21,7 +21,6 @@ class CategoryService {
         return {'id': doc.id, ...doc.data() as Map<String, dynamic>};
       }).toList();
     } catch (e) {
-      print("Error fetching categories: $e");
       return [];
     }
   }
@@ -32,7 +31,6 @@ class CategoryService {
       final QuerySnapshot snapshot = await categoriesCollection.get();
       return snapshot.size;
     } catch (e) {
-      print("Error counting categories: $e");
       return 0;
     }
   }
@@ -56,7 +54,6 @@ class CategoryService {
 
       return {'success': true, 'message': 'Category created successfully'};
     } catch (e) {
-      print("Error creating category: $e");
       return {'success': false, 'message': 'Failed to create category: $e'};
     }
   }
@@ -83,7 +80,6 @@ class CategoryService {
 
       return {'success': true, 'message': 'Category updated successfully'};
     } catch (e) {
-      print("Error updating category: $e");
       return {'success': false, 'message': 'Failed to update category: $e'};
     }
   }
@@ -109,7 +105,6 @@ class CategoryService {
 
       return {'success': true, 'message': 'Category deleted successfully'};
     } catch (e) {
-      print("Error deleting category: $e");
       return {'success': false, 'message': 'Failed to delete category: $e'};
     }
   }
