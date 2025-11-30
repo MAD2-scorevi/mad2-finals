@@ -145,7 +145,6 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
     final outOfStockCount = items
         .where((item) => item.stockQuantity <= 0)
         .length;
-    final categories = items.map((item) => item.category).toSet().length;
 
     return Center(
       child: Wrap(
@@ -179,12 +178,19 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
             color: const Color(0xFF133B7C),
             onTap: () => _showOutOfStockItems(items),
           ),
-          _buildStatCard(
-            title: 'Categories',
-            value: categories.toString(),
-            icon: Icons.category_rounded,
-            color: const Color(0xFF133B7C),
-            onTap: () => _showCategoriesDialog(items),
+          // Use StreamBuilder for dynamic category count
+          StreamBuilder<List<Map<String, dynamic>>>(
+            stream: _categoryService.categoriesStream,
+            builder: (context, snapshot) {
+              final categoryCount = snapshot.data?.length ?? 0;
+              return _buildStatCard(
+                title: 'Categories',
+                value: categoryCount.toString(),
+                icon: Icons.category_rounded,
+                color: const Color(0xFF133B7C),
+                // No onTap - just display the count
+              );
+            },
           ),
         ],
       ),
@@ -317,85 +323,6 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
                         Navigator.pop(context);
                         _showViewDetailsModal(context, item);
                       },
-                    );
-                  },
-                ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showCategoriesDialog(List<InventoryItem> items) async {
-    final categories = await _categoryService.getCategories();
-    final categoryStats = <String, int>{};
-
-    for (var category in categories) {
-      final categoryName = category['name'] as String;
-      categoryStats[categoryName] = items
-          .where((item) => item.category == categoryName)
-          .length;
-    }
-
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.category, color: Colors.green),
-            SizedBox(width: 10),
-            Text('Manage Categories'),
-          ],
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: categories.isEmpty
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Text('No categories yet'),
-                  ),
-                )
-              : ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: categories.length,
-                  itemBuilder: (context, index) {
-                    final category = categories[index];
-                    final categoryName = category['name'] as String;
-                    final count = categoryStats[categoryName] ?? 0;
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.green.withValues(alpha: 0.1),
-                          child: Text(
-                            count.toString(),
-                            style: const TextStyle(
-                              color: Colors.green,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          categoryName,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Text('$count products'),
-                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: () {
-                          Navigator.pop(context);
-                          setState(() {
-                            _selectedCategory = categoryName;
-                          });
-                        },
-                      ),
                     );
                   },
                 ),
