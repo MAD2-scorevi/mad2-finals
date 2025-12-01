@@ -1,0 +1,54 @@
+# Flutter build artifacts (except web)
+build/*
+!build/web
+
+# IDE
+.idea/
+.vscode/
+
+# Dart
+.dart_tool/
+.packages
+
+# Android
+android/
+*.jks
+*.keystore
+
+# iOS
+ios/
+*.ipa
+
+# MacOS
+macos/
+
+# Linux
+linux/
+
+# Windows (desktop)
+windows/
+
+# Functions
+functions/
+
+# Tests
+test/
+coverage/
+
+# Documentation
+*.md
+!README.md
+
+# Git
+.git/
+.gitignore
+
+# Misc
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+pubspec.lock
+analysis_options.yaml
+firebase.json
+firestore.indexes.json
+firestore.rules

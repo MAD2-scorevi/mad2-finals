@@ -8,3 +8,5 @@ build/
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
+.vercel
+.env*.local
