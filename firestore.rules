@@ -114,8 +114,8 @@ service cloud.firestore {
       // Everyone can read categories
       allow read: if true;
 
-      // Only admins can create, update, delete categories
-      allow create, update, delete: if isAdmin();
+      // Admins and owners can create, update, delete categories
+      allow create, update, delete: if isAdmin() || isOwner();
     }
 
     // Cart collection (example)
