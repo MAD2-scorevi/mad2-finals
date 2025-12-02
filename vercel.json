@@ -1,7 +1,10 @@
 {
-  "buildCommand": null,
+  "github": {
+    "silent": true
+  },
+  "buildCommand": "flutter/bin/flutter build web --release --web-renderer canvaskit",
   "outputDirectory": "build/web",
-  "installCommand": null,
+  "installCommand": "if [ ! -d \"flutter\" ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1; fi && flutter/bin/flutter doctor && flutter/bin/flutter pub get",
   "rewrites": [
     {
       "source": "/(.*)",
