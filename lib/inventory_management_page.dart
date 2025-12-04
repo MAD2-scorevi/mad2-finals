@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 import 'services/inventory_service.dart';
 import 'services/activity_service.dart';
 import 'services/category_service.dart';
@@ -16,8 +17,39 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
   final InventoryService _inventoryService = InventoryService();
   final ActivityService _activityService = ActivityService();
   final CategoryService _categoryService = CategoryService();
-  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = 'All';
+  List<String> _categories = ['All'];
+  StreamSubscription? _categorySubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  void _loadCategories() {
+    _categorySubscription = _categoryService.categoriesStream.listen((
+      categoryList,
+    ) {
+      if (mounted) {
+        setState(() {
+          _categories = [
+            'All',
+            ...categoryList.map((cat) => cat['name'] as String).toList()
+              ..sort(),
+          ];
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _categorySubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +67,6 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
         }
 
         final items = snapshot.data ?? [];
-        final filteredItems = _getFilteredItems(items);
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -86,21 +117,29 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Inventory Items
-                  if (filteredItems.isEmpty)
-                    _buildEmptyState()
-                  else
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: filteredItems.length,
-                      itemBuilder: (context, index) {
-                        return _buildInventoryCard(
-                          filteredItems[index],
-                          isMobile,
-                        );
-                      },
-                    ),
+                  // Inventory Items - Real-time filtering with ValueListenableBuilder
+                  ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: _searchController,
+                    builder: (context, value, child) {
+                      final filteredItems = _getFilteredItems(items);
+
+                      if (filteredItems.isEmpty) {
+                        return _buildEmptyState();
+                      }
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: filteredItems.length,
+                        itemBuilder: (context, index) {
+                          return _buildInventoryCard(
+                            filteredItems[index],
+                            isMobile,
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ],
               ),
             );
@@ -121,8 +160,8 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
     }
 
     // Filter by search query
-    if (_searchQuery.isNotEmpty) {
-      final query = _searchQuery.toLowerCase();
+    if (_searchController.text.isNotEmpty) {
+      final query = _searchController.text.toLowerCase();
       items = items.where((item) {
         return item.name.toLowerCase().contains(query) ||
             item.category.toLowerCase().contains(query) ||
@@ -160,7 +199,7 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
             onTap: () {
               setState(() {
                 _selectedCategory = 'All';
-                _searchQuery = '';
+                _searchController.clear();
               });
             },
           ),
@@ -338,124 +377,111 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
   }
 
   Widget _buildSearchAndFilter(List<InventoryItem> items, bool isMobile) {
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _categoryService.categoriesStream,
-      builder: (context, categorySnapshot) {
-        final categoryList = categorySnapshot.data ?? [];
-        final categories = [
-          'All',
-          ...categoryList.map((cat) => cat['name'] as String).toList()..sort(),
-        ];
-
-        if (isMobile) {
-          return Column(
-            children: [
-              TextField(
-                onChanged: (value) => setState(() => _searchQuery = value),
-                decoration: InputDecoration(
-                  hintText: 'Search products...',
-                  prefixIcon: const Icon(
-                    Icons.search,
-                    color: Color(0xFF133B7C),
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 16,
-                    horizontal: 16,
-                  ),
-                ),
+    if (isMobile) {
+      return Column(
+        children: [
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search products...',
+              prefixIcon: const Icon(Icons.search, color: Color(0xFF133B7C)),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
               ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedCategory,
-                isExpanded: true,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 16,
-                  ),
-                ),
-                items: categories.map((category) {
-                  return DropdownMenuItem(
-                    value: category,
-                    child: Text(category, overflow: TextOverflow.ellipsis),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() => _selectedCategory = value ?? 'All');
-                },
-              ),
-            ],
-          );
-        }
-
-        return Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: TextField(
-                onChanged: (value) => setState(() => _searchQuery = value),
-                decoration: InputDecoration(
-                  hintText: 'Search products...',
-                  prefixIcon: const Icon(
-                    Icons.search,
-                    color: Color(0xFF133B7C),
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 16,
-                    horizontal: 16,
-                  ),
-                ),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 16,
+                horizontal: 16,
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: _selectedCategory,
-                isExpanded: true,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 16,
-                  ),
-                ),
-                items: categories.map((category) {
-                  return DropdownMenuItem(
-                    value: category,
-                    child: Text(category, overflow: TextOverflow.ellipsis),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() => _selectedCategory = value ?? 'All');
-                },
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _categories.contains(_selectedCategory)
+                ? _selectedCategory
+                : 'All',
+            isExpanded: true,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 16,
               ),
             ),
-          ],
-        );
-      },
+            items: _categories.map((category) {
+              return DropdownMenuItem(
+                value: category,
+                child: Text(category, overflow: TextOverflow.ellipsis),
+              );
+            }).toList(),
+            onChanged: (value) {
+              setState(() => _selectedCategory = value ?? 'All');
+            },
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          flex: 2,
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search products...',
+              prefixIcon: const Icon(Icons.search, color: Color(0xFF133B7C)),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 16,
+                horizontal: 16,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            value: _categories.contains(_selectedCategory)
+                ? _selectedCategory
+                : 'All',
+            isExpanded: true,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 16,
+              ),
+            ),
+            items: _categories.map((category) {
+              return DropdownMenuItem(
+                value: category,
+                child: Text(category, overflow: TextOverflow.ellipsis),
+              );
+            }).toList(),
+            onChanged: (value) {
+              setState(() => _selectedCategory = value ?? 'All');
+            },
+          ),
+        ),
+      ],
     );
   }
 

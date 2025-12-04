@@ -1145,89 +1145,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
       return _cachedCredentials;
     }
 
-    final emailController = TextEditingController();
-    final passwordController = TextEditingController();
-
     final credentials = await showDialog<Map<String, String>?>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Confirm Admin Credentials'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Please enter your admin credentials to continue:',
-              style: TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                labelStyle: TextStyle(color: Colors.white70),
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.emailAddress,
-              textInputAction: TextInputAction.next,
-              onSubmitted: (_) {
-                // Move focus to password field on Enter
-                FocusScope.of(dialogContext).nextFocus();
-              },
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: passwordController,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                labelStyle: TextStyle(color: Colors.white70),
-                border: OutlineInputBorder(),
-              ),
-              obscureText: true,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) {
-                // Trigger confirm on Enter in password field
-                final email = emailController.text.trim();
-                final password = passwordController.text.trim();
-                if (email.isNotEmpty && password.isNotEmpty) {
-                  Navigator.pop(dialogContext, {
-                    'email': email,
-                    'password': password,
-                  });
-                }
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, null),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF133B7C),
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              final email = emailController.text.trim();
-              final password = passwordController.text.trim();
-              if (email.isNotEmpty && password.isNotEmpty) {
-                Navigator.pop(dialogContext, {
-                  'email': email,
-                  'password': password,
-                });
-              }
-            },
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
+      builder: (dialogContext) => _AdminCredentialsDialog(),
     );
-
-    // Dispose controllers after dialog is closed
-    emailController.dispose();
-    passwordController.dispose();
 
     if (credentials != null) {
       // Cache credentials for entire session
@@ -1709,6 +1631,88 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ],
         );
       },
+    );
+  }
+}
+
+// Stateful dialog for admin credentials to properly manage TextEditingController lifecycle
+class _AdminCredentialsDialog extends StatefulWidget {
+  const _AdminCredentialsDialog();
+
+  @override
+  _AdminCredentialsDialogState createState() => _AdminCredentialsDialogState();
+}
+
+class _AdminCredentialsDialogState extends State<_AdminCredentialsDialog> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  void _submit(BuildContext context) {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+    if (email.isNotEmpty && password.isNotEmpty) {
+      Navigator.pop(context, {'email': email, 'password': password});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Confirm Admin Credentials'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Please enter your admin credentials to continue:',
+            style: TextStyle(fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: emailController,
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              labelStyle: TextStyle(color: Colors.white70),
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: passwordController,
+            decoration: const InputDecoration(
+              labelText: 'Password',
+              labelStyle: TextStyle(color: Colors.white70),
+              border: OutlineInputBorder(),
+            ),
+            obscureText: true,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _submit(context),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, null),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF133B7C),
+            foregroundColor: Colors.white,
+          ),
+          onPressed: () => _submit(context),
+          child: const Text('Confirm'),
+        ),
+      ],
     );
   }
 }
