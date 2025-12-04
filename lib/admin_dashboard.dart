@@ -109,7 +109,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     _debounceUserTimer = Timer(const Duration(milliseconds: 500), () async {
       if (!mounted) return;
 
-
       try {
         // Check both Firebase Auth AND Firestore for complete coverage
         // Admin has permissions for both
@@ -146,7 +145,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
           }
         }
       } on FirebaseAuthException catch (e) {
-
         if (!mounted) return;
 
         if (e.code == 'invalid-email') {
@@ -161,7 +159,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
           });
         }
       } catch (e) {
-
         if (!mounted) return;
 
         setState(() {
@@ -1151,7 +1148,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
 
-    final result = await showDialog<bool>(
+    final credentials = await showDialog<Map<String, String>?>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
@@ -1193,9 +1190,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 final email = emailController.text.trim();
                 final password = passwordController.text.trim();
                 if (email.isNotEmpty && password.isNotEmpty) {
-                  emailController.text = email;
-                  passwordController.text = password;
-                  Navigator.pop(dialogContext, true);
+                  Navigator.pop(dialogContext, {
+                    'email': email,
+                    'password': password,
+                  });
                 }
               },
             ),
@@ -1203,7 +1201,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
+            onPressed: () => Navigator.pop(dialogContext, null),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
@@ -1212,13 +1210,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
               foregroundColor: Colors.white,
             ),
             onPressed: () {
-              // Capture values before popping
               final email = emailController.text.trim();
               final password = passwordController.text.trim();
-              Navigator.pop(dialogContext, true);
-              // Store in controllers for retrieval after dialog closes
-              emailController.text = email;
-              passwordController.text = password;
+              if (email.isNotEmpty && password.isNotEmpty) {
+                Navigator.pop(dialogContext, {
+                  'email': email,
+                  'password': password,
+                });
+              }
             },
             child: const Text('Confirm'),
           ),
@@ -1226,22 +1225,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
       ),
     );
 
-    if (result == true) {
-      final credentials = {
-        'email': emailController.text.trim(),
-        'password': passwordController.text.trim(),
-      };
-      emailController.dispose();
-      passwordController.dispose();
+    // Dispose controllers after dialog is closed
+    emailController.dispose();
+    passwordController.dispose();
 
+    if (credentials != null) {
       // Cache credentials for entire session
       _cachedCredentials = credentials;
-
       return credentials;
     }
 
-    emailController.dispose();
-    passwordController.dispose();
     return null;
   }
 

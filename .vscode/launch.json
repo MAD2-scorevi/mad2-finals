@@ -10,6 +10,24 @@
             "type": "dart",
         },
         {
+            "name": "mad2-finals (Android)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "emulator-5554"
+        },
+        {
+            "name": "mad2-finals (Chrome)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "chrome"
+        },
+        {
+            "name": "mad2-finals (Windows)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "windows"
+        },
+        {
             "name": "mad2-finals (profile mode)",
             "request": "launch",
             "type": "dart",
